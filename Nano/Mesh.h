@@ -16,6 +16,11 @@
     #endif
 #endif
 
+#if _MSC_VER
+#  pragma warning(push)
+#  pragma warning(disable: 4251) // Nano::Material::Name needs to have dll-interface
+#endif
+
 namespace Nano
 {
     using std::string;
@@ -69,10 +74,10 @@ namespace Nano
         string NormalPath;
         string EmissivePath;
 
-        Color3 AmbientColor  = Color3::WHITE;
-        Color3 DiffuseColor  = Color3::WHITE;
-        Color3 SpecularColor = Color3::WHITE;
-        Color3 EmissiveColor = Color3::BLACK;
+        Color3 AmbientColor  = Color3::White();
+        Color3 DiffuseColor  = Color3::White();
+        Color3 SpecularColor = Color3::White();
+        Color3 EmissiveColor = Color3::Black();
 
         float Specular = 1.0f;
         float Alpha    = 1.0f;
@@ -168,9 +173,9 @@ namespace Nano
         string Name; // name of the suboject
         shared_ptr<Material> Mat;
 
-        Vector3 Offset   = Vector3::ZERO;
-        Vector3 Rotation = Vector3::ZERO; // XYZ Euler DEGREES
-        Vector3 Scale    = Vector3::ONE;
+        Vector3 Offset   = Vector3::Zero();
+        Vector3 Rotation = Vector3::Zero(); // XYZ Euler DEGREES
+        Vector3 Scale    = Vector3::One();
 
         // we treat mesh data as 'layers', so everything except Verts is optional
         vector<Vector3> Verts;
@@ -256,7 +261,7 @@ namespace Nano
 
         // Adds additional meshgroups from another Mesh
         // Optionally appends an extra offset to position vertices
-        void AddMeshData(const MeshGroup& group, Vector3 offset = Vector3::ZERO) noexcept;
+        void AddMeshData(const MeshGroup& group, Vector3 offset = Vector3::Zero()) noexcept;
 
         // Gets a basic vertex mesh representation which can be used safely in most games,
         // because the vertices are safely flattened with optimal vertex sharing
@@ -416,7 +421,7 @@ namespace Nano
 
         // Adds additional meshgroups from another Mesh
         // Optionally appends an extra offset to position vertices
-        void AddMeshData(const Mesh& mesh, Vector3 offset = Vector3::ZERO) noexcept;
+        void AddMeshData(const Mesh& mesh, Vector3 offset = Vector3::Zero()) noexcept;
 
         // Flattens all mesh data, so MapMode is MapPerFaceVertex
         // This will make the mesh data compatible with any 3D graphics engine out there
@@ -440,3 +445,7 @@ namespace Nano
 
     //////////////////////////////////////////////////////////////////////
 }
+
+#if _MSC_VER
+#  pragma warning(pop) // pop dll-interface warning
+#endif

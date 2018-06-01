@@ -137,7 +137,7 @@ namespace Nano
     void MeshGroup::RecalculateNormals(const bool checkDuplicateVerts) noexcept
     {
         for (Vector3& normal : Normals)
-            normal = Vector3::ZERO;
+            normal = Vector3::Zero();
 
         FaceWindOrder winding = Winding;
 
@@ -159,7 +159,7 @@ namespace Nano
 
     Vector3 MeshGroup::GetNormalForSelection(const vector<WeightId>& selection) const noexcept
     {
-        Vector3 normal = Vector3::ZERO;
+        Vector3 normal = Vector3::Zero();
         if (selection.empty() || NormalsMapping != MapPerVertex)
             return normal;
 
@@ -243,7 +243,7 @@ namespace Nano
         int numFacesOld   = (int)Faces.size();
 
         append(Verts, group.Verts);
-        if (offset != Vector3::ZERO)
+        if (offset != Vector3::Zero())
         {
             for (int i = numVertsOld, count = (int)Verts.size(); i < count; ++i)
                 Verts[i] += offset;
@@ -292,9 +292,9 @@ namespace Nano
         {
             indices.push_back(vertexId++);
             vertices.emplace_back<BasicVertex>({
-                vd.v != -1 ? meshVerts[vd.v]   : Vector3::ZERO,
-                vd.t != -1 ? meshCoords[vd.t]  : Vector2::ZERO,
-                vd.n != -1 ? meshNormals[vd.n] : Vector3::ZERO
+                vd.v != -1 ? meshVerts[vd.v]   : Vector3::Zero(),
+                vd.t != -1 ? meshCoords[vd.t]  : Vector2::Zero(),
+                vd.n != -1 ? meshNormals[vd.n] : Vector3::Zero()
             });
         };
 
@@ -371,9 +371,9 @@ namespace Nano
                 if (!added[vertexId])
                 {
                     added[vertexId] = true;
-                    if (oldCoords)   coords.push_back(vd.t != -1 ?  oldCoords[vd.t] : Vector2::ZERO);
-                    if (oldNormals) normals.push_back(vd.n != -1 ? oldNormals[vd.n] : Vector3::ZERO);
-                    if (oldColors)   colors.push_back(vd.c != -1 ?  oldColors[vd.c] : Color3::ZERO);
+                    if (oldCoords)   coords.push_back(vd.t != -1 ?  oldCoords[vd.t] : Vector2::Zero());
+                    if (oldNormals) normals.push_back(vd.n != -1 ? oldNormals[vd.n] : Vector3::Zero());
+                    if (oldColors)   colors.push_back(vd.c != -1 ?  oldColors[vd.c] : Color3::Zero());
                 }
 
                 if (oldCoords)  vd.t = vertexId;
@@ -448,7 +448,7 @@ namespace Nano
         if (NumFaces())  sb.writef("  %5d tris", NumFaces());
         if (NumCoords()) sb.writef("  %5d uvs", NumCoords());
         if (NumColors()) sb.writef("  %5d colors", NumColors());
-        if (Offset != Vector3::ZERO) {
+        if (Offset != Vector3::Zero()) {
             char buf[48]; sb.writef("  offset:%s", Offset.toString(buf));
         }
         LogInfo("%.*s", sb.size(), sb.data());
@@ -602,7 +602,7 @@ namespace Nano
             while (oldGroupHasIdenticalName(group.Name))
                 group.Name += "_" + std::to_string(numGroupsOld);
 
-            if (offset != Vector3::ZERO) {
+            if (offset != Vector3::Zero()) {
                 for (Vector3& vertex : group.Verts)
                     vertex += offset;
             }

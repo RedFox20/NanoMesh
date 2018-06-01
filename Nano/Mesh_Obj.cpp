@@ -491,14 +491,14 @@ namespace Nano
 
     static vector<Vector3> FlattenColors(const MeshGroup& group)
     {
-        vector<Vector3> colors = { group.Verts.size(), Vector3::ZERO };
+        vector<Vector3> colors = { group.Verts.size(), Vector3::Zero() };
 
         for (const Triangle& face : group)
             for (const VertexDescr& vd : face)
             {
                 if (vd.c == -1) continue;
                 Vector3& dst = colors[vd.v];
-                if (dst == Vector3::ZERO || dst == Vector3::ONE)
+                if (dst == Vector3::Zero() || dst == Vector3::One())
                     dst = group.Colors[vd.c];
             }
         return colors;
@@ -550,7 +550,7 @@ namespace Nano
                     {
                         const Vector3& v = vertsData[i];
                         const Vector3& c = colorsData[i];
-                        if (c == Vector3::ZERO) sb.writef("v %.6f %.6f %.6f\n", v.x, v.y, v.z);
+                        if (c == Vector3::Zero()) sb.writef("v %.6f %.6f %.6f\n", v.x, v.y, v.z);
                         else sb.writef("v %.6f %.6f %.6f %.6f %.6f %.6f\n", v.x, v.y, v.z, c.x, c.y, c.z);
                     }
                 }
