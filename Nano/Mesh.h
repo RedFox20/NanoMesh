@@ -6,14 +6,16 @@
 /**
  * Enables FBX mesh loader for platforms that support it
  */
-#define ENABLE_FBX_MESH_LOADER (_WIN32)
+#if !NANOMESH_NO_FBX && !defined(ENABLE_FBX_MESH_LOADER)
+#  define ENABLE_FBX_MESH_LOADER (_WIN32)
+#endif
 
 #ifndef NANOMESH_API
-    #if _MSC_VER
-        #define NANOMESH_API __declspec(dllexport)
-    #else // clang/gcc
-        #define NANOMESH_API __attribute__((visibility("default")))
-    #endif
+#  if _MSC_VER
+#    define NANOMESH_API __declspec(dllexport)
+#  else // clang/gcc
+#    define NANOMESH_API __attribute__((visibility("default")))
+#  endif
 #endif
 
 #if _MSC_VER
