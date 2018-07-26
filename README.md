@@ -20,7 +20,8 @@ import mama
 class YourProject(mama.BuildTarget):
     local_workspace = 'build'
     def dependencies(self):
-        self.add_git('NanoMesh', 'https://github.com/RedFox20/NanoMesh.git')
+        # If you want to link against FBX sdk on Windows, Mac, iOS, Linux then remove NO_FBX
+        self.add_git('NanoMesh', 'https://github.com/RedFox20/NanoMesh.git', args=['NO_FBX'])
 
 ```
 Read more at: https://github.com/RedFox20/Mama
