@@ -23,10 +23,10 @@ namespace Nano
         strview SpecularPath;
         strview NormalPath;
         strview EmissivePath;
-        Color3 AmbientColor  = Color3::WHITE;
-        Color3 DiffuseColor  = Color3::WHITE;
-        Color3 SpecularColor = Color3::WHITE;
-        Color3 EmissiveColor = Color3::BLACK;
+        Color3 AmbientColor  = Color3::White();
+        Color3 DiffuseColor  = Color3::White();
+        Color3 SpecularColor = Color3::White();
+        Color3 EmissiveColor = Color3::Black();
         float Specular = 1.0f;
         float Alpha    = 1.0f;
 
@@ -81,9 +81,9 @@ namespace Nano
         W3DArrayView<Vector2> Coords;
         W3DArrayView<int>     Indices;
 
-        Vector3 Offset   = Vector3::ZERO;
-        Vector3 Rotation = Vector3::ZERO; // Euler XYZ DEGREES
-        Vector3 Scale    = Vector3::ONE;
+        Vector3 Offset   = Vector3::Zero();
+        Vector3 Rotation = Vector3::Zero(); // Euler XYZ DEGREES
+        Vector3 Scale    = Vector3::One();
 
         W3DMeshCoordSys CoordSys = CoordSysUnity;
 
