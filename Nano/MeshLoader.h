@@ -4,144 +4,140 @@
  */
 #include "Mesh.h"
 
-#ifndef MESHAPIC
-#define MESHAPIC extern "C" MESHAPI
+#ifndef NANOMESH_CAPI
+#define NANOMESH_CAPI extern "C" NANOMESH_API
 #endif
 
-namespace Nano
+////////////////////////////////////////////////////////////////////////////////////
+
+struct NANOMESH_API NanoMaterial
 {
-    using std::unique_ptr;
-    ////////////////////////////////////////////////////////////////////////////////////
+    // all publicly visible in C#
+    rpp::strview Name; // name of the material instance
+    rpp::strview MaterialFile; // 'default.mtl'
+    rpp::strview DiffusePath;
+    rpp::strview AlphaPath;
+    rpp::strview SpecularPath;
+    rpp::strview NormalPath;
+    rpp::strview EmissivePath;
+    rpp::Color3 AmbientColor  = rpp::Color3::White();
+    rpp::Color3 DiffuseColor  = rpp::Color3::White();
+    rpp::Color3 SpecularColor = rpp::Color3::White();
+    rpp::Color3 EmissiveColor = rpp::Color3::Black();
+    float Specular = 1.0f;
+    float Alpha    = 1.0f;
 
-    struct W3DMaterial
+    explicit NanoMaterial(const std::shared_ptr<Nano::Material>& mat)
+        : NanoMaterial(*mat)
     {
-        // all publicly visible in C#
-        strview Name; // name of the material instance
-        strview MaterialFile; // 'default.mtl'
-        strview DiffusePath;
-        strview AlphaPath;
-        strview SpecularPath;
-        strview NormalPath;
-        strview EmissivePath;
-        Color3 AmbientColor  = Color3::White();
-        Color3 DiffuseColor  = Color3::White();
-        Color3 SpecularColor = Color3::White();
-        Color3 EmissiveColor = Color3::Black();
-        float Specular = 1.0f;
-        float Alpha    = 1.0f;
-
-        explicit W3DMaterial(const shared_ptr<Material>& mat)
-        {
-            if (!mat) return;
-            Material& m = *mat;
-            Name          = m.Name;
-            MaterialFile  = m.MaterialFile;
-            DiffusePath   = m.DiffusePath;
-            AlphaPath     = m.AlphaPath;
-            SpecularPath  = m.SpecularPath;
-            NormalPath    = m.NormalPath;
-            EmissivePath  = m.EmissivePath;
-            AmbientColor  = m.AmbientColor;
-            DiffuseColor  = m.DiffuseColor;
-            SpecularColor = m.SpecularColor;
-            EmissiveColor = m.EmissiveColor;
-            Specular      = m.Specular;
-            Alpha         = m.Alpha;
-        }
-    };
-
-    template<class T> struct W3DArrayView
+    }
+    explicit NanoMaterial(const Nano::Material& m)
     {
-        T*  Data = nullptr;
-        int Size = 0;
-        W3DArrayView(){}
-        W3DArrayView(vector<T>& v) : Data(v.data()), Size((int)v.size()) {}
-        explicit operator bool() const { return Size > 0; }
-        FINLINE T& operator[](int index) { return Data[index]; }
-    };
+        Name          = m.Name;
+        MaterialFile  = m.MaterialFile;
+        DiffusePath   = m.DiffusePath;
+        AlphaPath     = m.AlphaPath;
+        SpecularPath  = m.SpecularPath;
+        NormalPath    = m.NormalPath;
+        EmissivePath  = m.EmissivePath;
+        AmbientColor  = m.AmbientColor;
+        DiffuseColor  = m.DiffuseColor;
+        SpecularColor = m.SpecularColor;
+        EmissiveColor = m.EmissiveColor;
+        Specular      = m.Specular;
+        Alpha         = m.Alpha;
+    }
+};
 
-    enum W3DMeshCoordSys
-    {
-        CoordSysOpenGL, // by default we load mesh files in OpenGL coordinate system
-        CoordSysUnity,  // but you can convert to Unity coordsys using W3DMeshGroup::ConvertCoords()
+template<class T> struct NanoArrayView
+{
+    T*  Data = nullptr;
+    int Size = 0;
+    NanoArrayView() = default;
+    NanoArrayView(std::vector<T>& v) : Data(v.data()), Size((int)v.size()) {}
+    explicit operator bool() const { return Size > 0; }
+    FINLINE T& operator[](int index) { return Data[index]; }
+};
 
-    };
+enum NanoMeshCoordSys
+{
+    CoordSysOpenGL, // by default we load mesh files in OpenGL coordinate system
+    CoordSysUnity,  // but you can convert to Unity coordsys using NanoMeshGroup::ConvertCoords()
+};
 
-    /**
-     * Triangulated mesh
-     */
-    struct W3DMeshGroup
-    {
-        // publicly visible in C#
-        int     GroupId = -1;
-        strview     Name;
-        W3DMaterial Mat;
-        W3DArrayView<Vector3> Vertices;
-        W3DArrayView<Vector3> Normals;
-        W3DArrayView<Vector2> Coords;
-        W3DArrayView<int>     Indices;
+/**
+ * Triangulated mesh
+ */
+struct NANOMESH_API NanoMeshGroup
+{
+    // publicly visible in C#
+    int     GroupId = -1;
+    rpp::strview     Name;
+    NanoMaterial Mat;
+    NanoArrayView<rpp::Vector3> Vertices;
+    NanoArrayView<rpp::Vector3> Normals;
+    NanoArrayView<rpp::Vector2> Coords;
+    NanoArrayView<int>     Indices;
 
-        Vector3 Offset   = Vector3::Zero();
-        Vector3 Rotation = Vector3::Zero(); // Euler XYZ DEGREES
-        Vector3 Scale    = Vector3::One();
+    rpp::Vector3 Offset   = rpp::Vector3::Zero();
+    rpp::Vector3 Rotation = rpp::Vector3::Zero(); // Euler XYZ DEGREES
+    rpp::Vector3 Scale    = rpp::Vector3::One();
 
-        W3DMeshCoordSys CoordSys = CoordSysUnity;
+    NanoMeshCoordSys CoordSys = CoordSysUnity;
 
-        // not mapped to C#
-        Mesh& Owner;
-        MeshGroup& Data;
-        vector<int> IndexData;
+    // not mapped to C#
+    Nano::Mesh& Owner;
+    Nano::MeshGroup& Data;
+    Nano::vector<int> IndexData;
 
-        explicit W3DMeshGroup(Mesh& mesh, MeshGroup& group);
-        explicit W3DMeshGroup(Mesh& mesh, int groupId);
+    explicit NanoMeshGroup(Nano::Mesh& mesh, Nano::MeshGroup& group);
+    explicit NanoMeshGroup(Nano::Mesh& mesh, int groupId);
 
-        void InitVerts();
-        void ConvertCoords(W3DMeshCoordSys coordSys);
-    };
+    void InitVerts();
+    void ConvertCoords(NanoMeshCoordSys coordSys);
+};
 
-    struct W3DMesh
-    {
-        // publicly visible in C#
-        strview Name  = "";
-        int NumGroups = 0;
-        int NumFaces  = 0;
+struct NANOMESH_API NanoMesh
+{
+    // publicly visible in C#
+    rpp::strview Name  = "";
+    int NumGroups = 0;
+    int NumFaces  = 0;
 
-        // not mapped to C#
-        Mesh Data;
-        vector<unique_ptr<W3DMeshGroup>> Groups;
+    // not mapped to C#
+    Nano::Mesh Data;
+    std::vector<std::unique_ptr<NanoMeshGroup>> Groups;
 
-        W3DMesh();
-        explicit W3DMesh(strview path);
-        W3DMeshGroup* GetGroup(int groupId);
-        W3DMeshGroup* AddGroup(string groupname);
-    };
+    NanoMesh();
+    explicit NanoMesh(rpp::strview path);
+    NanoMeshGroup* GetGroup(int groupId);
+    NanoMeshGroup* AddGroup(std::string groupname);
+};
 
-    ////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////
 
-    MESHAPIC W3DMesh*     W3DMeshOpen(const char* filename);
-    MESHAPIC void         W3DMeshClose(W3DMesh* mesh);
-    MESHAPIC W3DMeshGroup* W3DMeshGetGroup(W3DMesh* mesh, int groupId);
+NANOMESH_CAPI NanoMesh*      NanoMeshOpen(const char* filename);
+NANOMESH_CAPI void           NanoMeshClose(NanoMesh* mesh);
+NANOMESH_CAPI NanoMeshGroup* NanoMeshGetGroup(NanoMesh* mesh, int groupId);
 
-    MESHAPIC W3DMesh*      W3DMeshCreateEmpty(const char* meshname);
-    MESHAPIC bool          W3DMeshSave(W3DMesh* mesh, const char* filename);
-    MESHAPIC W3DMeshGroup* W3DMeshNewGroup(W3DMesh* mesh, const char* groupname);
+NANOMESH_CAPI NanoMesh*      NanoMeshCreateEmpty(const char* meshname);
+NANOMESH_CAPI bool           NanoMeshSave(NanoMesh* mesh, const char* filename);
+NANOMESH_CAPI NanoMeshGroup* NanoMeshNewGroup(NanoMesh* mesh, const char* groupname);
 
-    MESHAPIC void W3DMeshGroupSetMaterial(
-                    W3DMeshGroup* group,
-                    const char* name,
-                    const char* materialFile,
-                    const char* diffusePath,
-                    const char* alphaPath,
-                    const char* specularPath,
-                    const char* normalPath,
-                    const char* emissivePath,
-                    Color3 ambientColor,
-                    Color3 diffuseColor,
-                    Color3 specularColor,
-                    Color3 emissiveColor,
-                    float specular,
-                    float alpha);
+NANOMESH_CAPI void NanoMeshGroupSetMaterial(
+                NanoMeshGroup* group,
+                const char* name,
+                const char* materialFile,
+                const char* diffusePath,
+                const char* alphaPath,
+                const char* specularPath,
+                const char* normalPath,
+                const char* emissivePath,
+                rpp::Color3 ambientColor,
+                rpp::Color3 diffuseColor,
+                rpp::Color3 specularColor,
+                rpp::Color3 emissiveColor,
+                float specular,
+                float alpha);
 
-    ////////////////////////////////////////////////////////////////////////////////////
-}
-
+////////////////////////////////////////////////////////////////////////////////////

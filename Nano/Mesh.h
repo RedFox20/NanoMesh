@@ -8,11 +8,11 @@
  */
 #define ENABLE_FBX_MESH_LOADER (_WIN32)
 
-#ifndef MESHAPI
+#ifndef NANOMESH_API
     #if _MSC_VER
-        #define MESHAPI __declspec(dllexport)
+        #define NANOMESH_API __declspec(dllexport)
     #else // clang/gcc
-        #define MESHAPI __attribute__((visibility("default")))
+        #define NANOMESH_API __attribute__((visibility("default")))
     #endif
 #endif
 
@@ -37,7 +37,7 @@ namespace Nano
     //////////////////////////////////////////////////////////////////////
 
 
-    struct MESHAPI VertexDescr
+    struct NANOMESH_API VertexDescr
     {
         int v = -1; // vertex position index (vertexId)
         int t = -1; // vertex texture index (can be -1, aka no UV info)
@@ -46,7 +46,7 @@ namespace Nano
     };
 
 
-    struct MESHAPI Triangle
+    struct NANOMESH_API Triangle
     {
         VertexDescr a, b, c;
 
@@ -60,10 +60,10 @@ namespace Nano
         bool ContainsVertexId(int vertexId) const;
     };
 
-    MESHAPI string to_string(const Triangle& triangle);
+    NANOMESH_API string to_string(const Triangle& triangle);
 
 
-    struct MESHAPI Material
+    struct NANOMESH_API Material
     {
         string Name; // name of the material instance
         string MaterialFile; // eg 'default.mtl'
@@ -117,7 +117,7 @@ namespace Nano
 
     struct MeshGroup;
 
-    struct MESHAPI PickedTriangle
+    struct NANOMESH_API PickedTriangle
     {
         // @warning These pointers will invalidate if you modify the mesh!!
         const MeshGroup* group = nullptr;
@@ -137,7 +137,7 @@ namespace Nano
     };
 
 
-    MESHAPI string to_string(const PickedTriangle& triangle);
+    NANOMESH_API string to_string(const PickedTriangle& triangle);
 
 
     // Common 3D mesh vertex for games, as generic as it can get
@@ -167,7 +167,7 @@ namespace Nano
     };
 
 
-    struct MESHAPI MeshGroup
+    struct NANOMESH_API MeshGroup
     {
         int GroupId = -1;
         string Name; // name of the suboject
@@ -298,7 +298,7 @@ namespace Nano
 
     //////////////////////////////////////////////////////////////////////
 
-    struct MESHAPI MeshLoaderOptions
+    struct NANOMESH_API MeshLoaderOptions
     {
         /**
          * If true, then all named meshgroups will be ignored
@@ -332,7 +332,7 @@ namespace Nano
      * Mesh coordinate system is the OPENGL coordinate system
      * +X is Right on the screen, +Y is Up, +Z is INTO the screen
      */
-    class MESHAPI Mesh
+    class NANOMESH_API Mesh
     {
     public:
         // These are intentionally public to allow custom mesh manipulation
