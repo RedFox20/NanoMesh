@@ -5,6 +5,10 @@
 #include <unordered_set>
 #include <cstdlib>
 
+#define NanoErr(opt, message, ...) \
+        if ((opt).ThrowOnFailure) { ThrowErrType(Nano::MeshIOError, message, ##__VA_ARGS__); } \
+        else { LogError(message, ##__VA_ARGS__); }
+
 namespace Nano
 {
     using std::make_shared;
@@ -431,14 +435,15 @@ namespace Nano
             else Assert(false, "Unfamiliar CoordsMapping mode");
         }
 
-        void BuildMeshGroups() const
+        void BuildMeshGroups(MeshLoaderOptions opt) const
         {
             for (MeshGroup& g : mesh.Groups)
             {
                 mesh.NumFaces += g.NumFaces();
                 BuildGroup(g);
-                
-                g.Print();
+
+                if (opt.LogMeshGroupInfo)
+                    g.Print();
 
                 // OBJ default face winding is CCW
                 g.Winding = FaceWindCounterClockWise;
@@ -449,25 +454,23 @@ namespace Nano
         }
     };
 
-    bool Mesh::LoadOBJ(strview meshPath, MeshLoaderOptions options) noexcept
+    bool Mesh::LoadOBJ(strview meshPath, MeshLoaderOptions opt)
     {
         Clear();
 
-        ObjLoader loader { *this, meshPath, options };
+        ObjLoader loader { *this, meshPath, opt };
 
         if (!loader.parser) {
-            if (options.ThrowOnFailure) ThrowErr("Failed to open file: %s", meshPath);
-            else                      LogWarning("Failed to open file: %s", meshPath);
+            NanoErr(opt, "Failed to open file: %s", meshPath);
             return false;
         }
 
         if (!loader.ProbeStats()) {
-            if (options.ThrowOnFailure) ThrowErr("Mesh::LoadOBJ() failed! No vertices in: %s", meshPath);
-            else                      LogWarning("Mesh::LoadOBJ() failed! No vertices in: %s", meshPath);
+            NanoErr(opt, "Mesh::LoadOBJ() failed! No vertices in: %s", meshPath);
             return false;
         }
 
-        if (options.LogMeshGroupInfo)
+        if (opt.LogMeshGroupInfo)
             LogInfo("LoadOBJ %-28s  %5zu verts  %5zu faces",
                 file_name(meshPath), loader.numVerts, loader.numFaces);
 
@@ -482,9 +485,9 @@ namespace Nano
                     : malloc(loader.bufferSize);
         loader.InitPointers(mem);
         loader.ParseMeshData();
-        if (!options.CreateEmptyGroups)
+        if (!opt.CreateEmptyGroups)
             loader.RemoveEmptyGroups();
-        loader.BuildMeshGroups();
+        loader.BuildMeshGroups(opt);
 
         return true;
     }
@@ -507,13 +510,14 @@ namespace Nano
         return colors;
     }
 
-    bool Mesh::SaveAsOBJ(strview meshPath) const noexcept
+    bool Mesh::SaveAsOBJ(strview meshPath, MeshSaveOptions opt) const
     {
-        if (file f = file{ meshPath, rpp::CREATENEW })
+        if (file f { meshPath, rpp::CREATENEW })
         {
             string_buffer sb;
             // straight to file, #dontcare about perf atm
-            LogInfo("SaveOBJ %-28s  %5d verts  %5d tris", file_name(meshPath), TotalVerts(), TotalFaces());
+            if (opt.LogMeshGroupInfo)
+                LogInfo("SaveOBJ %-28s  %5d verts  %5d tris", file_name(meshPath), TotalVerts(), TotalFaces());
 
             string matlib = rpp::file_replace_ext(meshPath, "mtl");
             strview matlibFile = rpp::file_nameext(matlib);
@@ -583,9 +587,13 @@ namespace Nano
 
             if (f.write(sb) == sb.size())
                 return true;
-            LogWarning("File write failed: %s", meshPath);
+
+            NanoErr(opt, "File write failed: %s", meshPath);
         }
-        else LogWarning("Failed to create file: %s", meshPath);
+        else
+        {
+            NanoErr(opt, "Failed to create file: %s", meshPath);
+        }
         return false;
     }
 

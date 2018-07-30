@@ -1,5 +1,10 @@
 #include "Mesh.h"
 #include <rpp/debugging.h>
+
+#define NanoErr(opt, message, ...) \
+        if ((opt).ThrowOnFailure) { ThrowErrType(Nano::MeshIOError, message, ##__VA_ARGS__); } \
+        else { LogError(message, ##__VA_ARGS__); }
+
 #if ENABLE_FBX_MESH_LOADER
 #include <memory> // unique_ptr
 #include <fbxsdk.h>
@@ -11,6 +16,7 @@ namespace Nano
     static FbxIOSettings* IOSettings;
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
+
 
     // scoped pointer for safely managing FBX resources
     template<class T> using scoped_ptr = std::unique_ptr<T, void(*)(T*)>;
@@ -389,7 +395,7 @@ namespace Nano
         group.Scale    = FbxToOpenGL(scale);
     }
 
-    bool Mesh::LoadFBX(strview meshPath, MeshLoaderOptions options) noexcept
+    bool Mesh::LoadFBX(strview meshPath, MeshLoaderOptions opt)
     {
         Clear();
         InitFbxManager();
@@ -398,13 +404,13 @@ namespace Nano
         int format = -1;
 
         if (!importer->Initialize(meshPath.to_cstr(), format, SdkManager->GetIOSettings())) {
-            LogWarning("Failed to open file '%s': %s\n", meshPath, importer->GetStatus().GetErrorString());
+            NanoErr(opt, "Failed to open file '%s': %s\n", meshPath, importer->GetStatus().GetErrorString());
             return false;
         }
 
         FbxPtr<FbxScene> scene = FbxScene::Create(SdkManager, "scene");
         if (!importer->Import(scene.get())) {
-            LogWarning("Failed to load FBX '%s': %s\n", meshPath, importer->GetStatus().GetErrorString());
+            NanoErr(opt, "Failed to load FBX '%s': %s\n", meshPath, importer->GetStatus().GetErrorString());
             return false;
         }
         importer.reset();
@@ -412,12 +418,13 @@ namespace Nano
         if (FbxNode* root = scene->GetRootNode())
         {
             Name = file_name(meshPath);
-            LogInfo("LoadFBX %-20s", Name);
+            if (opt.LogMeshGroupInfo)
+                LogInfo("LoadFBX %-20s", Name);
 
             // @note ConvertScene only affects the global/local matrices, it doesn't modify the vertices themselves
             FbxAxisSystem sceneAxisSys = scene->GetGlobalSettings().GetAxisSystem();
-            if (sceneAxisSys != FbxAxisSystem{ FbxAxisSystem::eOpenGL })
-                LogWarning("Invalid AxisSystem! Please Re-Export the FBX in OpenGL Axis System");
+            //if (sceneAxisSys != FbxAxisSystem{ FbxAxisSystem::eOpenGL })
+            //    LogWarning("Invalid AxisSystem! Please Re-Export the FBX in OpenGL Axis System");
 
             int numChildren = root->GetChildCount();
 
@@ -567,14 +574,14 @@ namespace Nano
         mesh->BuildMeshEdgeArray();
     }
 
-    bool Mesh::SaveAsFBX(strview meshPath) const noexcept
+    bool Mesh::SaveAsFBX(strview meshPath, MeshSaveOptions opt) const
     {
         if (!NumFaces) {
-            LogWarning("No faces to export to '%s'\n", meshPath);
+            NanoErr(opt, "No faces to export to '%s'\n", meshPath);
             return false;
         }
         if (!NumGroups()) {
-            LogWarning("No mesh groups to export to '%s'\n", meshPath);
+            NanoErr(opt, "No mesh groups to export to '%s'\n", meshPath);
             return false;
         }
 
@@ -584,11 +591,11 @@ namespace Nano
         int format = -1;
 
         if (!exporter->Initialize(meshPath.to_cstr(), format, SdkManager->GetIOSettings())) {
-            LogWarning("Failed to open file '%s' for writing: %s\n", meshPath, exporter->GetStatus().GetErrorString());
+            NanoErr(opt, "Failed to open file '%s' for writing: %s\n", meshPath, exporter->GetStatus().GetErrorString());
             return false;
         }
         if (!exporter->SetFileExportVersion("FBX201400", FbxSceneRenamer::eNone)) {
-            LogWarning("Failed to set FBX export version: %s\n", exporter->GetStatus().GetErrorString());
+            NanoErr(opt, "Failed to set FBX export version: %s\n", exporter->GetStatus().GetErrorString());
             return false;
         }
 
@@ -600,7 +607,9 @@ namespace Nano
 
         if (FbxNode* root = scene->GetRootNode())
         {
-            LogInfo("SaveFBX %-28s  %5d verts  %5d tris", Name, TotalVerts(), TotalFaces());
+            if (opt.LogMeshGroupInfo)
+                LogInfo("SaveFBX %-28s  %5d verts  %5d tris", Name, TotalVerts(), TotalFaces());
+
             for (const MeshGroup& group : Groups)
             {
                 group.Print();
@@ -626,7 +635,7 @@ namespace Nano
         }
 
         if (!exporter->Export(scene.get())) {
-            LogWarning("Failed to export FBX '%s': %s\n", meshPath, exporter->GetStatus().GetErrorString());
+            NanoErr(opt, "Failed to export FBX '%s': %s\n", meshPath, exporter->GetStatus().GetErrorString());
             return false;
         }
         return true;
@@ -638,14 +647,14 @@ namespace Nano
 namespace Nano
 {
     bool Mesh::IsFBXSupported() noexcept { return false; }
-    bool Mesh::LoadFBX(strview meshPath, MeshLoaderOptions options) noexcept
+    bool Mesh::LoadFBX(strview meshPath, MeshLoaderOptions opt)
     {
-        LogError("FBX not supported in this build!\n%s", meshPath);
+        NanoErr(opt, "FBX not supported in this build!\n%s", meshPath);
         return false;
     }
-    bool Mesh::SaveAsFBX(strview meshPath) const noexcept
+    bool Mesh::SaveAsFBX(strview meshPath, MeshSaveOptions opt) const
     {
-        LogError("FBX not supported in this build!\n%s", meshPath);
+        NanoErr(opt, "FBX not supported in this build!\n%s", meshPath);
         return false;
     }
 }

@@ -10,8 +10,11 @@ namespace Nano
     using std::unordered_multimap;
     using rpp::string_buffer;
     using namespace rpp::literals;
-
     ///////////////////////////////////////////////////////////////////////////////////////////////
+
+    #define NanoErr(opt, message, ...) \
+        if ((opt).ThrowOnFailure) { ThrowErrType(Nano::MeshIOError, message, ##__VA_ARGS__); } \
+        else { LogError(message, ##__VA_ARGS__); }
 
     bool Triangle::ContainsVertexId(int vertexId) const
     {
@@ -549,23 +552,23 @@ namespace Nano
         return obj;
     }
 
-    bool Mesh::Load(strview meshPath, MeshLoaderOptions options)
+    bool Mesh::Load(strview meshPath, MeshLoaderOptions opt)
     {
         strview ext = file_ext(meshPath);
-        if (ext.equalsi("fbx"_sv)) return LoadFBX(meshPath, options);
-        if (ext.equalsi("obj"_sv)) return LoadOBJ(meshPath, options);
+        if (ext.equalsi("fbx"_sv)) return LoadFBX(meshPath, opt);
+        if (ext.equalsi("obj"_sv)) return LoadOBJ(meshPath, opt);
 
-        LogError("Error: unrecognized mesh format for file '%s'", meshPath.to_cstr());
+        NanoErr(opt, "Error: unrecognized mesh format for file '%s'", meshPath);
         return false;
     }
 
-    bool Mesh::SaveAs(strview meshPath) const noexcept
+    bool Mesh::SaveAs(strview meshPath, MeshSaveOptions opt) const
     {
         strview ext = file_ext(meshPath);
-        if (ext.equalsi("fbx"_sv)) return SaveAsFBX(meshPath);
-        if (ext.equalsi("obj"_sv)) return SaveAsOBJ(meshPath);
+        if (ext.equalsi("fbx"_sv)) return SaveAsFBX(meshPath, opt);
+        if (ext.equalsi("obj"_sv)) return SaveAsOBJ(meshPath, opt);
 
-        LogError("Error: unrecognized mesh format for file '%s'", meshPath.to_cstr());
+        NanoErr(opt, "Error: unrecognized mesh format for file '%s'", meshPath);
         return false;
     }
 

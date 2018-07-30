@@ -337,6 +337,27 @@ namespace Nano
         }
     };
 
+    struct NANOMESH_API MeshSaveOptions
+    {
+        /**
+         * Throw an exception if loading fails instead of logging and returning false
+         */
+        bool ThrowOnFailure = false;
+
+        /**
+         * Log mesh group stats during loading
+         */
+        bool LogMeshGroupInfo = true;
+    };
+
+    /**
+     * Load/Save errors
+     */
+    struct NANOMESH_API MeshIOError : std::runtime_error
+    {
+        using std::runtime_error::runtime_error;
+    };
+
     //////////////////////////////////////////////////////////////////////
 
 
@@ -413,16 +434,16 @@ namespace Nano
          * @note This will only throw if MeshLoaderOptions::ThrowOnFailure is true
          * @return If !ThrowOnFailure, returns TRUE on SUCCESS
          */
-        bool Load(strview meshPath, MeshLoaderOptions options = {});
-        bool SaveAs(strview meshPath) const noexcept;
+        bool Load(strview meshPath, MeshLoaderOptions opt = {});
+        bool SaveAs(strview meshPath, MeshSaveOptions opt = {}) const;
 
         // Is FBX supported on this platform?
         static bool IsFBXSupported() noexcept;
-        bool LoadFBX(strview meshPath, MeshLoaderOptions options = {}) noexcept;
-        bool LoadOBJ(strview meshPath, MeshLoaderOptions options = {}) noexcept;
+        bool LoadFBX(strview meshPath, MeshLoaderOptions opt = {});
+        bool LoadOBJ(strview meshPath, MeshLoaderOptions opt = {});
 
-        bool SaveAsFBX(strview meshPath) const noexcept;
-        bool SaveAsOBJ(strview meshPath) const noexcept;
+        bool SaveAsFBX(strview meshPath, MeshSaveOptions opt = {}) const;
+        bool SaveAsOBJ(strview meshPath, MeshSaveOptions opt = {}) const;
 
         // Recalculates all normals by find shared and non-shared vertices on the same pos
         // Currently does not respect smoothing groups
