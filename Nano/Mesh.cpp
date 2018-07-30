@@ -463,7 +463,7 @@ namespace Nano
     Mesh::Mesh() noexcept = default;
     Mesh::~Mesh() noexcept = default;
 
-    Mesh::Mesh(strview meshPath, MeshLoaderOptions options) noexcept
+    Mesh::Mesh(strview meshPath, MeshLoaderOptions options)
     {
         Load(meshPath, options);
     }
@@ -549,7 +549,7 @@ namespace Nano
         return obj;
     }
 
-    bool Mesh::Load(strview meshPath, MeshLoaderOptions options) noexcept
+    bool Mesh::Load(strview meshPath, MeshLoaderOptions options)
     {
         strview ext = file_ext(meshPath);
         if (ext.equalsi("fbx"_sv)) return LoadFBX(meshPath, options);

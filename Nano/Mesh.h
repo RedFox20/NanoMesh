@@ -317,6 +317,16 @@ namespace Nano
          */
         bool CreateEmptyGroups = false;
 
+        /**
+         * Throw an exception if loading fails instead of logging and returning false
+         */
+        bool ThrowOnFailure = false;
+
+        /**
+         * Log mesh group stats during loading
+         */
+        bool LogMeshGroupInfo = true;
+
         static MeshLoaderOptions SingleGroup()
         {
             MeshLoaderOptions o; o.ForceSingleGroup = true; return o;
@@ -346,7 +356,7 @@ namespace Nano
         Mesh() noexcept;
         
         // Automatically constructs a new mesh, check good() or cast to bool to check if successful
-        explicit Mesh(strview meshPath, MeshLoaderOptions options = {}) noexcept;
+        explicit Mesh(strview meshPath, MeshLoaderOptions options = {});
 
         ~Mesh() noexcept;
 
@@ -398,8 +408,12 @@ namespace Nano
         // @param cloneMaterials Will also clone the material references
         Mesh Clone(const bool cloneMaterials = false) const noexcept;
 
-
-        bool Load(strview meshPath, MeshLoaderOptions options = {}) noexcept;
+        /**
+         * Attempts to load this mesh.
+         * @note This will only throw if MeshLoaderOptions::ThrowOnFailure is true
+         * @return If !ThrowOnFailure, returns TRUE on SUCCESS
+         */
+        bool Load(strview meshPath, MeshLoaderOptions options = {});
         bool SaveAs(strview meshPath) const noexcept;
 
         // Is FBX supported on this platform?

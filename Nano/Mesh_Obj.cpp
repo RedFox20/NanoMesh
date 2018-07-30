@@ -456,17 +456,20 @@ namespace Nano
         ObjLoader loader { *this, meshPath, options };
 
         if (!loader.parser) {
-            LogWarning("Failed to open file: %s", meshPath);
+            if (options.ThrowOnFailure) ThrowErr("Failed to open file: %s", meshPath);
+            else                      LogWarning("Failed to open file: %s", meshPath);
             return false;
         }
 
         if (!loader.ProbeStats()) {
-            LogWarning("Mesh::LoadOBJ() failed! No vertices in: %s", meshPath);
+            if (options.ThrowOnFailure) ThrowErr("Mesh::LoadOBJ() failed! No vertices in: %s", meshPath);
+            else                      LogWarning("Mesh::LoadOBJ() failed! No vertices in: %s", meshPath);
             return false;
         }
 
-        LogInfo("LoadOBJ %-28s  %5zu verts  %5zu faces",
-            file_name(meshPath), loader.numVerts, loader.numFaces);
+        if (options.LogMeshGroupInfo)
+            LogInfo("LoadOBJ %-28s  %5zu verts  %5zu faces",
+                file_name(meshPath), loader.numVerts, loader.numFaces);
 
         // OBJ maps vertex data globally, not per-mesh-group like most game engines expect
         // so this really complicates things when we build the mesh groups...
