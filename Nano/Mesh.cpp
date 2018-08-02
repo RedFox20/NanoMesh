@@ -547,7 +547,8 @@ namespace Nano
         obj.NumFaces = NumFaces;
         if (cloneMaterials) {
             for (auto& group : obj.Groups)
-                group.Mat = make_shared<Material>(*group.Mat);
+                if (group.Mat)
+                    group.Mat = make_shared<Material>(*group.Mat);
         }
         return obj;
     }
