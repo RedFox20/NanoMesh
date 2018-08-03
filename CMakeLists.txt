@@ -11,6 +11,8 @@ elseif(LINUX)
     set(RUNTIME GL X11)
 endif()
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+
 file(GLOB NANOMESH_SOURCE Nano/*.cpp Nano/*.h)
 if(WIN32)
     set(NANOMESH_SOURCE ${NANOMESH_SOURCE} Nano/mesh.natvis)
