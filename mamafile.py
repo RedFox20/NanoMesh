@@ -14,6 +14,3 @@ class NanoMesh(mama.BuildTarget):
         if not self.enable_fbxsdk():
             self.add_cxx_flags('-DNANOMESH_NO_FBX=1')
 
-    def package(self):
-        self.export_include('.')
-        self.export_libs('.')
