@@ -647,7 +647,7 @@ namespace Nano
         NanoErr(opt, "FBX not supported in this build!\n%s", meshPath);
         return false;
     }
-    bool Mesh::SaveAsFBX(strview meshPath, MeshSaveOptions opt) const
+    bool Mesh::SaveAsFBX(strview meshPath, Options opt) const
     {
         NanoErr(opt, "FBX not supported in this build!\n%s", meshPath);
         return false;
