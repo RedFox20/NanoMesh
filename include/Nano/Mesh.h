@@ -185,7 +185,7 @@ namespace Nano
         vector<Vector3> Normals;
         vector<Color3>  Colors;
 
-        vector<Triangle> Faces; // face descriptors (tris and/or quads)
+        vector<Triangle> Tris; // face descriptors (tris and/or quads)
 
         MapMode CoordsMapping  = MapNone;
         MapMode NormalsMapping = MapNone;
@@ -196,8 +196,8 @@ namespace Nano
         MeshGroup(int groupId, string name)
             : GroupId(groupId), Name(std::move(name)) {}
 
-        bool IsEmpty()   const { return Faces.empty(); }
-        int NumTris()    const { return (int)Faces.size(); }
+        bool IsEmpty()   const { return Tris.empty(); }
+        int NumTris()    const { return (int)Tris.size(); }
         int NumVerts()   const { return (int)Verts.size(); }
         int NumCoords()  const { return (int)Coords.size(); }
         int NumNormals() const { return (int)Normals.size(); }
@@ -214,10 +214,10 @@ namespace Nano
         const Vector3& Vertex(int vertexId)          const { return Verts.data()[vertexId]; }
         const Vector3& Vertex(const VertexDescr& vd) const { return Verts.data()[vd.v]; }
 
-        const Triangle* begin() const { return &Faces.front(); }
-        const Triangle* end()   const { return &Faces.back() + 1; }
-        Triangle* begin() { return &Faces.front(); }
-        Triangle* end()   { return &Faces.back() + 1; }
+        const Triangle* begin() const { return &Tris.front(); }
+        const Triangle* end()   const { return &Tris.back() + 1; }
+        Triangle* begin() { return &Tris.front(); }
+        Triangle* end()   { return &Tris.back() + 1; }
 
         // creates and assigns a new material to this mesh group
         Material& CreateMaterial(string name);

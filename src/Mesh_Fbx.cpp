@@ -146,8 +146,8 @@ namespace Nano
         int numPolys = fbxMesh->GetPolygonCount();
         int* indices = fbxMesh->GetPolygonVertices(); // control point indices
 
-        vector<Triangle>& faces = meshGroup.Faces;
-        faces.reserve(numPolys);
+        vector<Triangle>& tris = meshGroup.Tris;
+        tris.reserve(numPolys);
         oldIndices.reserve(numPolys * 3);
 
         int oldPolyVertId = 0;
@@ -158,7 +158,7 @@ namespace Nano
             
             Assert(numPolyVerts >= 3, "Not enough polygon vertices: %d. Expected at least 3.", numPolyVerts);
 
-            Triangle* f = &rpp::emplace_back(faces);
+            Triangle* f = &rpp::emplace_back(tris);
             f->a.v = vertexIds[0];
             f->b.v = vertexIds[1];
             f->c.v = vertexIds[2];
@@ -173,7 +173,7 @@ namespace Nano
                 // v[0], v[2], v[3]
                 VertexDescr vd0 = f->a; // by value, because emplace_back may realloc
                 VertexDescr vd2 = f->c;
-                f = &rpp::emplace_back(faces);
+                f = &rpp::emplace_back(tris);
                 f->a = vd0;
                 f->b = vd2;
                 f->c.v = vertexIds[i];
@@ -210,7 +210,7 @@ namespace Nano
             normals[i] = FbxToOpenGL(fbxNormals[i]);
 
         const int numTris = meshGroup.NumTris();
-        Triangle* faces = meshGroup.Faces.data();
+        Triangle* faces = meshGroup.Tris.data();
 
         // each polygon vertex can have multiple normals, 
         // but if indices are used, most will be shared normals
@@ -282,7 +282,7 @@ namespace Nano
         }
 
         const int numTris = meshGroup.NumTris();
-        Triangle* faces = meshGroup.Faces.data();
+        Triangle* faces = meshGroup.Tris.data();
 
         // each polygon vertex can have multiple UV coords,
         // this allows multiple UV shells, so UV-s aren't forced to be contiguous
@@ -340,7 +340,7 @@ namespace Nano
         }
 
         const int numTris = meshGroup.NumTris();
-        Triangle* faces = meshGroup.Faces.data();
+        Triangle* faces = meshGroup.Tris.data();
 
         // with eByPolygonVertex, each polygon vertex can have multiple colors,
         // this allows full face coloring with no falloff blending with neighbouring faces

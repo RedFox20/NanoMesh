@@ -6,9 +6,10 @@
 namespace Nano
 {
     using std::swap;
+    using std::move;
     using std::make_shared;
-    using std::unordered_multimap;
     using rpp::string_buffer;
+    using rpp::append;
     using namespace rpp::literals;
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -47,8 +48,8 @@ namespace Nano
     {
         if (!group || !face)
             return -1;
-        const Triangle* faces = group->Faces.data();
-        size_t count = group->Faces.size();
+        const Triangle* faces = group->Tris.data();
+        size_t count = group->Tris.size();
         for (size_t i = 0; i < count; ++i)
             if (faces + i == face)
                 return int(i);
@@ -78,7 +79,7 @@ namespace Nano
 
     void MeshGroup::InvertFaceWindingOrder()
     {
-        for (Triangle& tri : Faces)
+        for (Triangle& tri : Tris)
         {
             // 0 1 2 --> 0 2 1
             swap(tri.b, tri.c);
@@ -117,7 +118,7 @@ namespace Nano
         {
             // add normals to any vertex that shares v0/v1/v2 coordinates
             // an unoptimized Mesh may have multiple vertices occupying the same XYZ position
-            for (const Triangle& f : Faces)
+            for (const Triangle& f : Tris)
             {
                 for (const VertexDescr& vd : f)
                 {
@@ -141,7 +142,7 @@ namespace Nano
         FaceWindOrder winding = Winding;
 
         // normals are calculated for each tri:
-        for (const Triangle& tri : Faces)
+        for (const Triangle& tri : Tris)
         {
             if (winding == FaceWindCounterClockWise)
             {
@@ -185,14 +186,14 @@ namespace Nano
         auto* meshCoords  = Coords.data();
         auto* meshNormals = Normals.data();
         auto* meshColors  = Colors.data();
-        size_t count = Faces.size() * 3u;
+        size_t count = Tris.size() * 3u;
         vector<Vector3> verts; verts.reserve(count);
         vector<Vector2> coords;  if (!Coords.empty())   coords.reserve(count);
         vector<Vector3> normals; if (!Normals.empty()) normals.reserve(count);
         vector<Color3>  colors;  if (!Colors.empty())   colors.reserve(count);
 
         int vertexId = 0, coordId = 0, normalId = 0, colorId = 0;
-        for (Triangle& f : Faces)
+        for (Triangle& f : Tris)
         {
             for (VertexDescr& vd : f)
             {
@@ -239,7 +240,7 @@ namespace Nano
         int numVertsOld   = (int)Verts.size();
         int numCoordsOld  = (int)Coords.size();
         int numNormalsOld = (int)Normals.size();
-        int numTrisOld    = (int)Faces.size();
+        int numTrisOld    = (int)Tris.size();
 
         append(Verts, group.Verts);
         if (offset != Vector3::Zero())
@@ -263,10 +264,10 @@ namespace Nano
             ColorMapping = MapPerVertex;
         }
 
-        rpp::append(Faces, group.Faces);
-        for (int i = numTrisOld, numTris = (int)Faces.size(); i < numTris; ++i)
+        rpp::append(Tris, group.Tris);
+        for (int i = numTrisOld, numTris = (int)Tris.size(); i < numTris; ++i)
         {
-            Triangle& face = Faces[i];
+            Triangle& face = Tris[i];
             for (VertexDescr& vd : face)
             {
                 vd.v += numVertsOld;
@@ -283,8 +284,8 @@ namespace Nano
         auto* meshCoords  = Coords.data();
         auto* meshNormals = Normals.data();
 
-        vertices.reserve(Faces.size() * 3u);
-        indices.reserve(Faces.size() * 3u);
+        vertices.reserve(Tris.size() * 3u);
+        indices.reserve(Tris.size() * 3u);
 
         int vertexId = 0;
         auto addVertex = [&](const VertexDescr& vd)
@@ -297,7 +298,7 @@ namespace Nano
             });
         };
 
-        for (const Triangle& face : Faces)
+        for (const Triangle& face : Tris)
             for (const VertexDescr& vd : face)
                 addVertex(vd);
     }
@@ -308,7 +309,7 @@ namespace Nano
             return a.t == b.t && a.n == b.n && a.c == b.c;
         };
 
-        unordered_multimap<int, VertexDescr> addedVerts; addedVerts.reserve(NumVerts());
+        std::unordered_multimap<int, VertexDescr> addedVerts; addedVerts.reserve(NumVerts());
 
         auto getExistingVertex = [&](const VertexDescr& old, VertexDescr& out) -> bool
         {
@@ -323,8 +324,8 @@ namespace Nano
             return false;
         };
 
-        size_t numTris  = Faces.size();
-        auto*  oldFaces = Faces.data();
+        size_t numTris  = Tris.size();
+        auto*  oldFaces = Tris.data();
         auto*  oldVerts = Verts.data();
         vector<Triangle> faces; faces.resize(numTris);
         vector<Vector3>  verts; verts.reserve(Verts.size());
@@ -348,7 +349,7 @@ namespace Nano
             }
         }
         Verts = move(verts);
-        Faces = move(faces);
+        Tris = move(faces);
     }
 
     void MeshGroup::PerVertexFlatten() noexcept
@@ -362,7 +363,7 @@ namespace Nano
 
         vector<bool> added; added.resize(Verts.size());
 
-        for (Triangle& face : Faces)
+        for (Triangle& face : Tris)
         {
             for (VertexDescr& vd : face)
             {
@@ -407,9 +408,9 @@ namespace Nano
     void MeshGroup::CreateIndexArray(vector<int>& indices) const noexcept
     {
         indices.clear();
-        indices.reserve(Faces.size() * 3u);
+        indices.reserve(Tris.size() * 3u);
 
-        for (const Triangle& face : Faces)
+        for (const Triangle& face : Tris)
             for (const VertexDescr& vd : face)
                 indices.push_back(vd.v);
     }
@@ -425,7 +426,7 @@ namespace Nano
         const Triangle* picked = nullptr;
         float closestDist = 9999999999999.0f;
 
-        for (const Triangle& tri : Faces)
+        for (const Triangle& tri : Tris)
         {
             const Vector3& v0 = verts[tri.a.v];
             const Vector3& v1 = verts[tri.b.v];

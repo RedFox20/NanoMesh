@@ -28,17 +28,18 @@ if(WIN32)
 endif()
 
 
-include_directories(include)
-file(GLOB NANOMESH_INCLUDES include/**)
-file(GLOB NANOMESH_SOURCES src/*.cpp src/*.h)
-if(WIN32)
-    set(NANOMESH_INCLUDES ${NANOMESH_INCLUDES} include/Nano/mesh.natvis)
+include_directories("include")
+file(GLOB_RECURSE NANOMESH_INCLUDES include/*.h)
+file(GLOB_RECURSE NANOMESH_SOURCES src/*.cpp src/*.h)
+if(MSVC)
+    set(NANOMESH_INCLUDES ${NANOMESH_INCLUDES} ${CMAKE_CURRENT_SOURCE_DIR}/include/Nano/mesh.natvis)
 endif()
 
-add_library(NanoMesh ${NANOMESH_SOURCES})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${NANOMESH_INCLUDES})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${NANOMESH_SOURCES})
-target_link_libraries(NanoMesh 
+
+add_library(NanoMesh ${NANOMESH_INCLUDES} ${NANOMESH_SOURCES})
+target_link_libraries(NanoMesh
     PRIVATE ${MAMA_LIBS}
     PRIVATE ${LIBFBX})
 install(TARGETS NanoMesh DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/lib)

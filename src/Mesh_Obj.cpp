@@ -277,7 +277,7 @@ namespace Nano
                 else if (c == 'f')
                 {
                     // f Vertex1/Texture1/Normal1 Vertex2/Texture2/Normal2 Vertex3/Texture3/Normal3
-                    auto& faces = CurrentGroup()->Faces;
+                    auto& faces = CurrentGroup()->Tris;
                     Triangle* f = &rpp::emplace_back(faces);
 
                     // load the face indices
@@ -384,17 +384,17 @@ namespace Nano
         {
             if (g.Name.empty() && g.Mat) // assign default name
                 g.Name = g.Mat->Name;
-            if (g.Faces.empty())
+            if (g.Tris.empty())
                 return;
 
             const bool vertexColors = numColors > 0;
 
             std::vector<int> uniqueVerts, uniqueCoords, uniqueNormals;
-            uniqueVerts.reserve(g.Faces.size() * 3);
-            if (g.Faces.front().a.t != -1) uniqueCoords.reserve(uniqueVerts.size());
-            if (g.Faces.front().a.n != -1) uniqueCoords.reserve(uniqueCoords.size());
+            uniqueVerts.reserve(g.Tris.size() * 3);
+            if (g.Tris.front().a.t != -1) uniqueCoords.reserve(uniqueVerts.size());
+            if (g.Tris.front().a.n != -1) uniqueCoords.reserve(uniqueCoords.size());
 
-            for (Triangle& face : g.Faces)
+            for (Triangle& face : g.Tris)
             {
                 for (VertexDescr& vd : face) 
                 {
@@ -573,7 +573,7 @@ namespace Nano
                 if (!g.Name.empty()) sb.writeln("g", g.Name);
                 if (g.Mat)           sb.writeln("usemtl", g.Mat->Name);
                 sb.writeln("s", group);
-                for (const Triangle& face : g.Faces)
+                for (const Triangle& face : g.Tris)
                 {
                     sb.write('f');
                     for (const VertexDescr& vd : face)
