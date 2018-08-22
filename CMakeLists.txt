@@ -1,31 +1,45 @@
 cmake_minimum_required(VERSION 3.8)
 project(NanoMesh)
 
-include(mama.cmake)
-message("MAMA_INCLUDES=${MAMA_INCLUDES}")
-include_directories(${MAMA_INCLUDES})
+option(NANO_ENABLE_FBX  "Link against FBX Sdk" OFF)
+option(NANO_BUILD_TESTS "Build NanoMesh test suite" OFF)
 
-if(WIN32)
-    set(RUNTIME opengl32.lib)
-elseif(LINUX)
-    set(RUNTIME GL X11)
-endif()
+include(mama.cmake)
+include_directories(${MAMA_INCLUDES})
 
 if(CLANG OR GCC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fPIC")
 endif()
 
-file(GLOB NANOMESH_SOURCE Nano/*.cpp Nano/*.h)
+if(NOT NANO_ENABLE_FBX)
+    add_definitions(-DNANOMESH_NO_FBX=1)
+endif()
 if(WIN32)
-    set(NANOMESH_SOURCE ${NANOMESH_SOURCE} Nano/mesh.natvis)
+    if(NANO_ENABLE_FBX)
+        set(LIBFBX ${CMAKE_SOURCE_DIR}/lib/libfbxsdk.lib)
+    endif()
 endif()
 
-add_library(NanoMesh ${NANOMESH_SOURCE})
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${NANOMESH_SOURCE})
 
-target_link_libraries(NanoMesh PRIVATE ${MAMA_LIBS} PRIVATE ${RUNTIME})
+include_directories(include)
+file(GLOB NANOMESH_INCLUDES include/Nano/*.h)
+file(GLOB NANOMESH_SOURCES src/*.cpp src/*.h)
+if(WIN32)
+    set(NANOMESH_INCLUDES ${NANOMESH_INCLUDES} include/Nano/mesh.natvis)
+endif()
 
+add_library(NanoMesh ${NANOMESH_SOURCES})
+source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${NANOMESH_INCLUDES})
+source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${NANOMESH_SOURCES})
+
+target_link_libraries(NanoMesh 
+    PRIVATE ${MAMA_LIBS}
+    PRIVATE ${LIBFBX})
 set_property(TARGET NanoMesh PROPERTY CXX_STANDARD 17)
 set_property(TARGET NanoMesh PROPERTY CXX_STANDARD_REQUIRED)
 
-install(TARGETS NanoMesh DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/lib)
+install(TARGETS NanoMesh DESTINATION ${CMAKE_SOURCE_DIR}/lib)
+
+if(NANO_BUILD_TESTS)
+    add_subdirectory(test)
+endif()

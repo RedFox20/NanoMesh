@@ -1,4 +1,4 @@
-#include "Mesh.h"
+#include <Nano/Mesh.h>
 #include <rpp/debugging.h>
 
 #define NanoErr(opt, message, ...) \
@@ -445,7 +445,7 @@ namespace Nano
                     NumFaces += group.NumFaces();
                     group.Print();
                 }
-                else if (options.CreateEmptyGroups)
+                else if (opt.CreateEmptyGroups)
                 {
                     MeshGroup& group = CreateGroup(child->GetName());
                     SetTransform(group, child);
