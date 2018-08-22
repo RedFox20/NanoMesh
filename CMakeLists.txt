@@ -32,7 +32,7 @@ include_directories("include")
 file(GLOB_RECURSE NANOMESH_INCLUDES include/*.h)
 file(GLOB_RECURSE NANOMESH_SOURCES src/*.cpp src/*.h)
 if(MSVC)
-    set(NANOMESH_INCLUDES ${NANOMESH_INCLUDES} ${CMAKE_CURRENT_SOURCE_DIR}/include/Nano/mesh.natvis)
+    set(NANOMESH_INCLUDES ${NANOMESH_INCLUDES} ${CMAKE_CURRENT_SOURCE_DIR}/include/Nano/NanoMesh.natvis)
 endif()
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${NANOMESH_INCLUDES})
