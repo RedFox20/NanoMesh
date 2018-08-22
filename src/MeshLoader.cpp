@@ -1,5 +1,6 @@
 #include <Nano/MeshLoader.h>
 #include <rpp/file_io.h>
+#include <rpp/debugging.h>
 
 using std::make_unique;
 using namespace Nano;
@@ -36,7 +37,7 @@ void NanoMeshGroup::InitVerts()
     Scale    = Data.Scale;
 
     if (Vertices.Size == 0 || Indices.Size == 0) {
-        fprintf(stderr, "WARNING: No mesh data for group %d\n", GroupId);
+        LogWarning("WARNING: No mesh data for group %d\n", GroupId);
         return;
     }
 }
@@ -59,7 +60,7 @@ NanoMesh::NanoMesh(strview path) : Data{ path }
     Groups.resize(Data.NumGroups());
     Name      = Data.Name;
     NumGroups = Data.NumGroups();
-    NumFaces  = Data.NumFaces;
+    NumTris   = Data.TotalTris();
 
     //string copy = path_combine(folder_path(path), file_name(path) + "_validate.obj");
     //Data.SaveAsOBJ(copy);

@@ -102,7 +102,7 @@ struct NANOMESH_API NanoMesh
     // publicly visible in C#
     rpp::strview Name  = "";
     int NumGroups = 0;
-    int NumFaces  = 0;
+    int NumTris   = 0;
 
     // not mapped to C#
     Nano::Mesh Data;

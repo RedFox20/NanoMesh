@@ -197,7 +197,7 @@ namespace Nano
             : GroupId(groupId), Name(std::move(name)) {}
 
         bool IsEmpty()   const { return Faces.empty(); }
-        int NumFaces()   const { return (int)Faces.size(); }
+        int NumTris()    const { return (int)Faces.size(); }
         int NumVerts()   const { return (int)Verts.size(); }
         int NumCoords()  const { return (int)Coords.size(); }
         int NumNormals() const { return (int)Normals.size(); }
@@ -300,7 +300,12 @@ namespace Nano
 
     //////////////////////////////////////////////////////////////////////
 
-    struct NANOMESH_API MeshLoaderOptions
+    /**
+     * Convenient mesh load options
+     * Usage:
+     *     Nano::Mesh mesh { "mesh.obj", Options::NoThrow | Options::LogGroups };
+     */
+    struct NANOMESH_API Options
     {
         /**
          * If true, then all named meshgroups will be ignored
@@ -318,36 +323,22 @@ namespace Nano
         bool CreateEmptyGroups = false;
 
         /**
-         * Throw an exception if loading fails instead of logging and returning false
+         * if TRUE  Mesh Load/Save throws an exception during failure
+         * if FALSE Mesh Load/Save logs error and returns false
          */
-        bool ThrowOnFailure = false;
+        bool NoExceptions = false;
 
         /**
          * Log mesh group stats during loading
          */
-        bool LogMeshGroupInfo = true;
+        bool LogMeshGroupInfo = false;
 
-        static MeshLoaderOptions SingleGroup()
-        {
-            MeshLoaderOptions o; o.ForceSingleGroup = true; return o;
-        }
-        static MeshLoaderOptions EmptyGroups()
-        {
-            MeshLoaderOptions o; o.CreateEmptyGroups = true; return o;
-        }
-    };
+        static const Options SingleGroup;
+        static const Options EmptyGroups;
+        static const Options NoThrow;
+        static const Options LogGroups;
 
-    struct NANOMESH_API MeshSaveOptions
-    {
-        /**
-         * Throw an exception if loading fails instead of logging and returning false
-         */
-        bool ThrowOnFailure = false;
-
-        /**
-         * Log mesh group stats during loading
-         */
-        bool LogMeshGroupInfo = true;
+        Options operator|(const Options& o) const;
     };
 
     /**
@@ -364,6 +355,17 @@ namespace Nano
     /**
      * Mesh coordinate system is the OPENGL coordinate system
      * +X is Right on the screen, +Y is Up, +Z is INTO the screen
+     * 
+     * @warning All imported meshes are TRIANGULATED.
+     *          Game engines work with triangles only.
+     *          
+     * @warning Mesh data is separated by groups, which can lead
+     *          to bigger vertex count.
+     *          Game engines can't handle vertex sharing between groups.
+     *          You can load mesh with `Nano::Options::SingleGroup` to work around this.
+     * 
+     * @warning Only one material is allowed per group. 
+     *          Game mesh VBO's can only be drawn with a single shader.
      */
     class NANOMESH_API Mesh
     {
@@ -371,24 +373,23 @@ namespace Nano
         // These are intentionally public to allow custom mesh manipulation
         string Name;
         vector<MeshGroup> Groups;
-        int NumFaces = 0;
         
         // Default empty mesh
         Mesh() noexcept;
         
         // Automatically constructs a new mesh, check good() or cast to bool to check if successful
-        explicit Mesh(strview meshPath, MeshLoaderOptions options = {});
+        explicit Mesh(strview meshPath, Options options = {});
 
         ~Mesh() noexcept;
 
-        int TotalFaces() const;
+        int TotalTris() const;
         int TotalVerts() const;
         int TotalCoords() const;
         int TotalNormals() const;
         int TotalColors() const;
 
 
-        bool good() const { return !Groups.empty() && NumFaces > 0; }
+        bool good() const { return !Groups.empty(); }
         explicit operator bool() const { return  good(); }
         bool operator!()         const { return !good(); }
 
@@ -431,19 +432,19 @@ namespace Nano
 
         /**
          * Attempts to load this mesh.
-         * @note This will only throw if MeshLoaderOptions::ThrowOnFailure is true
-         * @return If !ThrowOnFailure, returns TRUE on SUCCESS
+         * @note This will only throw if Options::NoExceptions is true
+         * @return If !NoExceptions, returns TRUE on SUCCESS
          */
-        bool Load(strview meshPath, MeshLoaderOptions opt = {});
-        bool SaveAs(strview meshPath, MeshSaveOptions opt = {}) const;
+        bool Load(strview meshPath, Options opt = {});
+        bool SaveAs(strview meshPath, Options opt = {}) const;
 
         // Is FBX supported on this platform?
         static bool IsFBXSupported() noexcept;
-        bool LoadFBX(strview meshPath, MeshLoaderOptions opt = {});
-        bool LoadOBJ(strview meshPath, MeshLoaderOptions opt = {});
+        bool LoadFBX(strview meshPath, Options opt = {});
+        bool LoadOBJ(strview meshPath, Options opt = {});
 
-        bool SaveAsFBX(strview meshPath, MeshSaveOptions opt = {}) const;
-        bool SaveAsOBJ(strview meshPath, MeshSaveOptions opt = {}) const;
+        bool SaveAsFBX(strview meshPath, Options opt = {}) const;
+        bool SaveAsOBJ(strview meshPath, Options opt = {}) const;
 
         // Recalculates all normals by find shared and non-shared vertices on the same pos
         // Currently does not respect smoothing groups

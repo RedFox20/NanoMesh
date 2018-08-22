@@ -1,9 +1,5 @@
 #include <Nano/Mesh.h>
-#include <rpp/debugging.h>
-
-#define NanoErr(opt, message, ...) \
-        if ((opt).ThrowOnFailure) { ThrowErrType(Nano::MeshIOError, message, ##__VA_ARGS__); } \
-        else { LogError(message, ##__VA_ARGS__); }
+#include "InternalConfig.h"
 
 #if ENABLE_FBX_MESH_LOADER
 #include <memory> // unique_ptr
@@ -213,7 +209,7 @@ namespace Nano
         for (int i = 0; i < numNormals; ++i)
             normals[i] = FbxToOpenGL(fbxNormals[i]);
 
-        const int numFaces = meshGroup.NumFaces();
+        const int numTris = meshGroup.NumTris();
         Triangle* faces = meshGroup.Faces.data();
 
         // each polygon vertex can have multiple normals, 
@@ -226,7 +222,7 @@ namespace Nano
             meshGroup.NormalsMapping = MapPerFaceVertex;
 
             const int* oldPolyVertIds = oldIndices.data();
-            for (int nextId = 0, faceId = 0; faceId < numFaces; ++faceId)
+            for (int nextId = 0, faceId = 0; faceId < numTris; ++faceId)
             {
                 for (VertexDescr& vd : faces[faceId])
                 {
@@ -240,7 +236,7 @@ namespace Nano
         {
             meshGroup.NormalsMapping = MapPerVertex;
 
-            for (int faceId = 0; faceId < numFaces; ++faceId)
+            for (int faceId = 0; faceId < numTris; ++faceId)
                 for (VertexDescr& vd : faces[faceId])
                 {
                     const int vertexId = vd.v;
@@ -253,7 +249,7 @@ namespace Nano
             meshGroup.NormalsMapping = MapPerFace;
 
             // @todo indices[faceId] might be wrong
-            for (int faceId = 0; faceId < numFaces; ++faceId)
+            for (int faceId = 0; faceId < numTris; ++faceId)
                 for (VertexDescr& vd : faces[faceId])
                 {
                     Assert(faceId < maxNormals, "Normal index out of bounds: %d / %d", faceId, maxNormals);
@@ -285,7 +281,7 @@ namespace Nano
             coords[i].y = (float)fbxUVs[i].mData[1];
         }
 
-        const int numFaces = meshGroup.NumFaces();
+        const int numTris = meshGroup.NumTris();
         Triangle* faces = meshGroup.Faces.data();
 
         // each polygon vertex can have multiple UV coords,
@@ -296,7 +292,7 @@ namespace Nano
             meshGroup.CoordsMapping = MapPerFaceVertex;
 
             const int* oldPolyVertIds = oldIndices.data();
-            for (int nextId = 0, faceId = 0; faceId < numFaces; ++faceId)
+            for (int nextId = 0, faceId = 0; faceId < numTris; ++faceId)
             {
                 for (VertexDescr& vd : faces[faceId])
                 {
@@ -310,7 +306,7 @@ namespace Nano
         {
             meshGroup.CoordsMapping = MapPerVertex;
 
-            for (int faceId = 0; faceId < numFaces; ++faceId)
+            for (int faceId = 0; faceId < numTris; ++faceId)
                 for (VertexDescr& vd : faces[faceId])
                 {
                     const int vertexId = vd.v;
@@ -343,7 +339,7 @@ namespace Nano
             colors[i].z = (float)fbxColors[i].mBlue;
         }
 
-        const int numFaces = meshGroup.NumFaces();
+        const int numTris = meshGroup.NumTris();
         Triangle* faces = meshGroup.Faces.data();
 
         // with eByPolygonVertex, each polygon vertex can have multiple colors,
@@ -354,7 +350,7 @@ namespace Nano
             meshGroup.ColorMapping = MapPerFaceVertex;
 
             const int* oldPolyVertIds = oldIndices.data();
-            for (int nextId = 0, faceId = 0; faceId < numFaces; ++faceId)
+            for (int nextId = 0, faceId = 0; faceId < numTris; ++faceId)
             {
                 for (VertexDescr& vd : faces[faceId])
                 {
@@ -368,7 +364,7 @@ namespace Nano
         {
             meshGroup.ColorMapping = MapPerVertex;
 
-            for (int faceId = 0; faceId < numFaces; ++faceId)
+            for (int faceId = 0; faceId < numTris; ++faceId)
                 for (VertexDescr& vd : faces[faceId])
                     vd.c = indices ? indices[vd.v] : vd.v; // indexed separately OR same as VertexId
         }
@@ -377,7 +373,7 @@ namespace Nano
             meshGroup.ColorMapping = MapPerFace;
 
             // @todo indices[faceId] might be wrong
-            for (int faceId = 0; faceId < numFaces; ++faceId)
+            for (int faceId = 0; faceId < numTris; ++faceId)
                 for (VertexDescr& vd : faces[faceId])
                     vd.c = indices ? indices[faceId] : faceId; // indexed separately OR same as FaceId
         }
@@ -395,7 +391,7 @@ namespace Nano
         group.Scale    = FbxToOpenGL(scale);
     }
 
-    bool Mesh::LoadFBX(strview meshPath, MeshLoaderOptions opt)
+    bool Mesh::LoadFBX(strview meshPath, Options opt)
     {
         Clear();
         InitFbxManager();
@@ -442,7 +438,6 @@ namespace Nano
                     if (auto* uvs     = mesh->GetElementUV())          LoadCoords(group,  uvs,     oldIndices);
                     if (auto* colors  = mesh->GetElementVertexColor()) LoadColors(group,  colors,  oldIndices);
 
-                    NumFaces += group.NumFaces();
                     group.Print();
                 }
                 else if (opt.CreateEmptyGroups)
@@ -574,14 +569,14 @@ namespace Nano
         mesh->BuildMeshEdgeArray();
     }
 
-    bool Mesh::SaveAsFBX(strview meshPath, MeshSaveOptions opt) const
+    bool Mesh::SaveAsFBX(strview meshPath, Options opt) const
     {
-        if (!NumFaces) {
-            NanoErr(opt, "No faces to export to '%s'\n", meshPath);
-            return false;
-        }
         if (!NumGroups()) {
             NanoErr(opt, "No mesh groups to export to '%s'\n", meshPath);
+            return false;
+        }
+        if (!TotalTris()) {
+            NanoErr(opt, "No faces to export to '%s'\n", meshPath);
             return false;
         }
 
@@ -608,7 +603,7 @@ namespace Nano
         if (FbxNode* root = scene->GetRootNode())
         {
             if (opt.LogMeshGroupInfo)
-                LogInfo("SaveFBX %-28s  %5d verts  %5d tris", Name, TotalVerts(), TotalFaces());
+                LogInfo("SaveFBX %-28s  %5d verts  %5d tris", Name, TotalVerts(), TotalTris());
 
             for (const MeshGroup& group : Groups)
             {
@@ -647,7 +642,7 @@ namespace Nano
 namespace Nano
 {
     bool Mesh::IsFBXSupported() noexcept { return false; }
-    bool Mesh::LoadFBX(strview meshPath, MeshLoaderOptions opt)
+    bool Mesh::LoadFBX(strview meshPath, Options opt)
     {
         NanoErr(opt, "FBX not supported in this build!\n%s", meshPath);
         return false;

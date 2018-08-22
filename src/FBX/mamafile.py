@@ -1,7 +1,7 @@
 import mama
 class FbxSdk(mama.BuildTarget):
 
-    def configure(self):
+    def dependencies(self):
         self.nothing_to_build()
     
     def package(self):

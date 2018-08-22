@@ -1,7 +1,7 @@
 #include <Nano/Mesh.h>
 #include <rpp/file_io.h>
 #include <rpp/sprint.h>
-#include <rpp/debugging.h>
+#include "InternalConfig.h"
 
 namespace Nano
 {
@@ -11,10 +11,6 @@ namespace Nano
     using rpp::string_buffer;
     using namespace rpp::literals;
     ///////////////////////////////////////////////////////////////////////////////////////////////
-
-    #define NanoErr(opt, message, ...) \
-        if ((opt).ThrowOnFailure) { ThrowErrType(Nano::MeshIOError, message, ##__VA_ARGS__); } \
-        else { LogError(message, ##__VA_ARGS__); }
 
     bool Triangle::ContainsVertexId(int vertexId) const
     {
@@ -243,7 +239,7 @@ namespace Nano
         int numVertsOld   = (int)Verts.size();
         int numCoordsOld  = (int)Coords.size();
         int numNormalsOld = (int)Normals.size();
-        int numFacesOld   = (int)Faces.size();
+        int numTrisOld    = (int)Faces.size();
 
         append(Verts, group.Verts);
         if (offset != Vector3::Zero())
@@ -268,7 +264,7 @@ namespace Nano
         }
 
         rpp::append(Faces, group.Faces);
-        for (int i = numFacesOld, numFaces = (int)Faces.size(); i < numFaces; ++i)
+        for (int i = numTrisOld, numTris = (int)Faces.size(); i < numTris; ++i)
         {
             Triangle& face = Faces[i];
             for (VertexDescr& vd : face)
@@ -327,13 +323,13 @@ namespace Nano
             return false;
         };
 
-        size_t numFaces = Faces.size();
+        size_t numTris  = Faces.size();
         auto*  oldFaces = Faces.data();
         auto*  oldVerts = Verts.data();
-        vector<Triangle> faces; faces.resize(numFaces);
+        vector<Triangle> faces; faces.resize(numTris);
         vector<Vector3>  verts; verts.reserve(Verts.size());
 
-        for (size_t faceId = 0; faceId < numFaces; ++faceId)
+        for (size_t faceId = 0; faceId < numTris; ++faceId)
         {
             const Triangle& oldFace = oldFaces[faceId];
             Triangle& newFace = faces[faceId];
@@ -448,7 +444,7 @@ namespace Nano
         string_buffer sb;
         sb.writef("   group  %-28s", Name.c_str());
         if (NumVerts())  sb.writef("  %5d verts", NumVerts());
-        if (NumFaces())  sb.writef("  %5d tris", NumFaces());
+        if (NumTris())   sb.writef("  %5d tris", NumTris());
         if (NumCoords()) sb.writef("  %5d uvs", NumCoords());
         if (NumColors()) sb.writef("  %5d colors", NumColors());
         if (Offset != Vector3::Zero()) {
@@ -458,22 +454,39 @@ namespace Nano
     }
 
 
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+
+
+    const Options Options::SingleGroup { true,  false, false, false };
+    const Options Options::EmptyGroups { false, true,  false, false };
+    const Options Options::NoThrow     { false, false, true,  false };
+    const Options Options::LogGroups   { false, false, false, true  };
+
+    Options Options::operator|(const Options& o) const
+    {
+        Options opt;
+        opt.ForceSingleGroup  = ForceSingleGroup  | o.ForceSingleGroup;
+        opt.CreateEmptyGroups = CreateEmptyGroups | o.CreateEmptyGroups;
+        opt.NoExceptions      = NoExceptions      | o.NoExceptions;
+        opt.LogMeshGroupInfo  = LogMeshGroupInfo  | o.LogMeshGroupInfo;
+        return opt;
+    }
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
-    
 
 
     Mesh::Mesh() noexcept = default;
     Mesh::~Mesh() noexcept = default;
 
-    Mesh::Mesh(strview meshPath, MeshLoaderOptions options)
+    Mesh::Mesh(strview meshPath, Options options)
     {
         Load(meshPath, options);
     }
 
-    int Mesh::TotalFaces() const
+    int Mesh::TotalTris() const
     {
-        return rpp::sum_all(Groups, &MeshGroup::NumFaces);
+        return rpp::sum_all(Groups, &MeshGroup::NumTris);
     }
     int Mesh::TotalVerts() const
     {
@@ -536,7 +549,6 @@ namespace Nano
     {
         Name.clear();
         Groups.clear();
-        NumFaces = 0;
     }
 
     Mesh Mesh::Clone(const bool cloneMaterials) const noexcept
@@ -544,7 +556,6 @@ namespace Nano
         Mesh obj;
         obj.Name     = Name;
         obj.Groups   = Groups;
-        obj.NumFaces = NumFaces;
         if (cloneMaterials) {
             for (auto& group : obj.Groups)
                 if (group.Mat)
@@ -553,7 +564,7 @@ namespace Nano
         return obj;
     }
 
-    bool Mesh::Load(strview meshPath, MeshLoaderOptions opt)
+    bool Mesh::Load(strview meshPath, Options opt)
     {
         strview ext = file_ext(meshPath);
         if (ext.equalsi("fbx"_sv)) return LoadFBX(meshPath, opt);
@@ -563,7 +574,7 @@ namespace Nano
         return false;
     }
 
-    bool Mesh::SaveAs(strview meshPath, MeshSaveOptions opt) const
+    bool Mesh::SaveAs(strview meshPath, Options opt) const
     {
         strview ext = file_ext(meshPath);
         if (ext.equalsi("fbx"_sv)) return SaveAsFBX(meshPath, opt);

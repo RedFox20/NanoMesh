@@ -1,13 +1,9 @@
 #include <Nano/Mesh.h>
 #include <rpp/file_io.h>
-#include <rpp/debugging.h>
 #include <rpp/sprint.h>
 #include <unordered_set>
 #include <cstdlib>
-
-#define NanoErr(opt, message, ...) \
-        if ((opt).ThrowOnFailure) { ThrowErrType(Nano::MeshIOError, message, ##__VA_ARGS__); } \
-        else { LogError(message, ##__VA_ARGS__); }
+#include "InternalConfig.h"
 
 namespace Nano
 {
@@ -18,7 +14,7 @@ namespace Nano
     using namespace rpp::literals;
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
-    static bool SaveMaterials(const Mesh& mesh, strview materialSavePath, strview fileName) noexcept
+    static bool SaveMaterials(const Mesh& mesh, strview materialSavePath, strview fileName, Options opt)
     {
         if (mesh.Groups.empty() || !mesh.HasAnyMaterials())
             return false;
@@ -73,9 +69,13 @@ namespace Nano
 
             if (f.write(sb) == sb.size())
                 return true;
-            LogWarning("File write failed: %s", materialSavePath);
+
+            NanoErr(opt, "File write failed: %s", materialSavePath)
         }
-        else LogWarning("Failed to create file: %s", materialSavePath);
+        else
+        {
+            NanoErr(opt, "Failed to create file: %s", materialSavePath);
+        }
         return false;
     }
 
@@ -126,7 +126,7 @@ namespace Nano
     {
         Mesh& mesh;
         strview meshPath;
-        MeshLoaderOptions options;
+        Options options;
         buffer_line_parser parser;
         size_t numVerts = 0, numCoords = 0, numNormals = 0, numColors = 0, numFaces = 0;
         vector<shared_ptr<Material>> materials;
@@ -141,8 +141,8 @@ namespace Nano
         void* dataBuffer = nullptr;
         size_t bufferSize = 0;
 
-        explicit ObjLoader(Mesh& mesh, strview meshPath, MeshLoaderOptions options)
-            : mesh{ mesh }, meshPath{ meshPath }, options{options}, 
+        explicit ObjLoader(Mesh& mesh, strview meshPath, Options options)
+            : mesh{ mesh }, meshPath{ meshPath }, options{ options }, 
               parser{ buffer_line_parser::from_file(meshPath) }
         {
         }
@@ -173,7 +173,7 @@ namespace Nano
 
             parser.reset();
             if (numVerts == 0) {
-                LogWarning("Mesh::LoadOBJ() failed: No vertices in %s\n", meshPath);
+                NanoErr(options, "Mesh::LoadOBJ() failed: No vertices in %s\n", meshPath);
                 return false;
             }
 
@@ -422,11 +422,11 @@ namespace Nano
             int numVerts   = g.NumVerts();
             int numNormals = g.NumNormals();
             int numCoords  = g.NumCoords();
-            int numFaces   = g.NumFaces();
+            int numTris    = g.NumTris();
 
             if      (numNormals <= 0)        g.NormalsMapping = MapNone;
             else if (numNormals == numVerts) g.NormalsMapping = MapPerVertex;
-            else if (numNormals == numFaces) g.NormalsMapping = MapPerFace;
+            else if (numNormals == numTris)  g.NormalsMapping = MapPerFace;
             else if (numNormals >  numVerts) g.NormalsMapping = MapPerFaceVertex;
             else                             g.NormalsMapping = MapSharedElements;
             if      (numCoords == 0)         g.CoordsMapping  = MapNone;
@@ -435,11 +435,10 @@ namespace Nano
             else Assert(false, "Unfamiliar CoordsMapping mode");
         }
 
-        void BuildMeshGroups(MeshLoaderOptions opt) const
+        void BuildMeshGroups(Options opt) const
         {
             for (MeshGroup& g : mesh.Groups)
             {
-                mesh.NumFaces += g.NumFaces();
                 BuildGroup(g);
 
                 if (opt.LogMeshGroupInfo)
@@ -454,7 +453,7 @@ namespace Nano
         }
     };
 
-    bool Mesh::LoadOBJ(strview meshPath, MeshLoaderOptions opt)
+    bool Mesh::LoadOBJ(strview meshPath, Options opt)
     {
         Clear();
 
@@ -487,7 +486,12 @@ namespace Nano
         loader.ParseMeshData();
         if (!opt.CreateEmptyGroups)
             loader.RemoveEmptyGroups();
+
         loader.BuildMeshGroups(opt);
+
+        if (opt.LogMeshGroupInfo)
+            LogInfo("   loaded %-28s  %5d verts  %5d tris",
+                file_name(meshPath), TotalVerts(), TotalTris());
 
         return true;
     }
@@ -510,18 +514,18 @@ namespace Nano
         return colors;
     }
 
-    bool Mesh::SaveAsOBJ(strview meshPath, MeshSaveOptions opt) const
+    bool Mesh::SaveAsOBJ(strview meshPath, Options opt) const
     {
         if (file f { meshPath, rpp::CREATENEW })
         {
             string_buffer sb;
             // straight to file, #dontcare about perf atm
             if (opt.LogMeshGroupInfo)
-                LogInfo("SaveOBJ %-28s  %5d verts  %5d tris", file_name(meshPath), TotalVerts(), TotalFaces());
+                LogInfo("SaveOBJ %-28s  %5d verts  %5d tris", file_name(meshPath), TotalVerts(), TotalTris());
 
             string matlib = rpp::file_replace_ext(meshPath, "mtl");
             strview matlibFile = rpp::file_nameext(matlib);
-            if (SaveMaterials(*this, matlib, matlibFile))
+            if (SaveMaterials(*this, matlib, matlibFile, opt))
                 sb.writeln("mtllib", matlibFile);
 
             if (!Name.empty())
@@ -534,7 +538,8 @@ namespace Nano
             for (int group = 0; group < (int)Groups.size(); ++group)
             {
                 const MeshGroup& g = Groups[group];
-                g.Print();
+                if (opt.LogMeshGroupInfo)
+                    g.Print();
 
                 auto* vertsData = g.Verts.data();
                 if (g.Colors.empty())
