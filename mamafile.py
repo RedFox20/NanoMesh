@@ -8,6 +8,9 @@ class NanoMesh(mama.BuildTarget):
     def enable_fbxsdk(self):
         return not ('NO_FBX' in self.args) and self.windows
 
+    def enable_tests(self):
+        return not ('NO_TESTS' in self.args)
+
     def dependencies(self):
         self.add_git('ReCpp', 'https://github.com/RedFox20/ReCpp.git')
         if self.enable_fbxsdk():
@@ -15,7 +18,7 @@ class NanoMesh(mama.BuildTarget):
 
     def configure(self):
         if self.enable_fbxsdk(): self.add_cmake_options('NANO_ENABLE_FBX=ON')
-        if self.config.test:     self.add_cmake_options('NANO_BUILD_TESTS=ON')
+        if self.enable_tests():  self.add_cmake_options('NANO_BUILD_TESTS=ON')
 
     def package(self):
         self.export_include('include')
