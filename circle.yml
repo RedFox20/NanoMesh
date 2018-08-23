@@ -1,0 +1,19 @@
+version: 2
+jobs:
+  clang:
+    docker:
+      - image: circleci/python:3.6.2
+    steps:
+      - checkout
+      - run: make configure-clang6-1404
+      - run: make configure-pip
+      - run: make configure-cmake
+      - run: sudo python3.6 -m pip install mama
+      - run: sudo apt -y install libdw-dev gdb
+      - run: mama build clang
+      - run: mama test
+workflows:
+  version: 2
+  build_all:
+    jobs:
+      - clang
