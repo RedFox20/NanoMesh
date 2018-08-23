@@ -8,7 +8,7 @@ include(mama.cmake)
 include_directories(${MAMA_INCLUDES})
 
 if(CLANG OR GCC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fPIC")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Wall -fPIC")
 elseif(MSVC)
     # /MD - MultiThreaded Dynamic CRT
     # /wd4996 - Disable deprecation warning       /wd4819 - Disable code page warning (OpenCV)
