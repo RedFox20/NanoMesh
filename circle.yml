@@ -10,8 +10,8 @@ jobs:
       - run: make configure-cmake
       - run: sudo python3.6 -m pip install mama
       - run: sudo apt -y install libdw-dev gdb
-      - run: mama build clang
-      - run: mama test
+      # always build with testing
+      - run: mama clang build test
 workflows:
   version: 2
   build_all:
