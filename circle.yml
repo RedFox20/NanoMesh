@@ -9,7 +9,8 @@ jobs:
       - run: make configure-pip
       - run: make configure-cmake
       - run: sudo python3.6 -m pip install mama
-      - run: sudo apt -y install libdw-dev gdb
+      - run: sudo apt -y install libdw-dev gdb git-lfs
+      - run: git lfs pull
       # always build with testing
       - run: mama clang build test
 workflows:

@@ -34,3 +34,4 @@
 build/
 mama.cmake
 bin/head_male.saved.fbx
+bin/NanoMeshTests
