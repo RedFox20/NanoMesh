@@ -477,8 +477,8 @@ namespace Nano
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
 
-    Mesh::Mesh() noexcept = default;
-    Mesh::~Mesh() noexcept = default;
+    Mesh::Mesh() = default;
+    Mesh::~Mesh() = default;
 
     Mesh::Mesh(strview meshPath, Options options)
     {
