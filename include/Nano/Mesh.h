@@ -375,12 +375,12 @@ namespace Nano
         vector<MeshGroup> Groups;
         
         // Default empty mesh
-        Mesh() noexcept;
+        Mesh();
         
         // Automatically constructs a new mesh, check good() or cast to bool to check if successful
         explicit Mesh(strview meshPath, Options options = {});
 
-        ~Mesh() noexcept;
+        ~Mesh();
 
         int TotalTris() const;
         int TotalVerts() const;
