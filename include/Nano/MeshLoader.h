@@ -27,12 +27,10 @@ struct NANOMESH_API NanoMaterial
     float Specular = 1.0f;
     float Alpha    = 1.0f;
 
-    explicit NanoMaterial(const std::shared_ptr<Nano::Material>& mat)
-        : NanoMaterial(*mat)
+    explicit NanoMaterial(const Nano::Material* mat)
     {
-    }
-    explicit NanoMaterial(const Nano::Material& m)
-    {
+        if (!mat) return;
+        const Nano::Material& m = *mat;
         Name          = m.Name;
         MaterialFile  = m.MaterialFile;
         DiffusePath   = m.DiffusePath;

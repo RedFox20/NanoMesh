@@ -7,13 +7,13 @@ using namespace Nano;
 ////////////////////////////////////////////////////////////////////////////////////
 
 NanoMeshGroup::NanoMeshGroup(Mesh& mesh, MeshGroup& group)
-    : GroupId(group.GroupId), Mat{ group.Mat }, Owner{ mesh }, Data{ group }
+    : GroupId(group.GroupId), Mat{ group.Mat.get() }, Owner{ mesh }, Data{ group }
 {
     Name = Data.Name;
 }
 
 NanoMeshGroup::NanoMeshGroup(Mesh& mesh, int groupId)
-    : GroupId(groupId), Mat{ mesh[groupId].Mat }, Owner{ mesh }, Data{ mesh[groupId] }
+    : GroupId(groupId), Mat{ mesh[groupId].Mat.get() }, Owner{ mesh }, Data{ mesh[groupId] }
 {
     Name = Data.Name;
     InitVerts();
@@ -157,7 +157,7 @@ NANOMESH_CAPI void NanoMeshGroupSetMaterial(
     mat.EmissiveColor = emissiveColor;
     mat.Specular      = specular;
     mat.Alpha         = alpha;
-    group->Mat = NanoMaterial{ mat };
+    group->Mat = NanoMaterial{ &mat };
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
