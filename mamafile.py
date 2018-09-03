@@ -37,4 +37,7 @@ class NanoMesh(mama.BuildTarget):
 
     def test(self, args):
         self.gdb(f'bin/NanoMeshTests {args}', src_dir=True)
+        if self.windows or self.linux:
+            self.gdb('bin/NanoMeshCSharpTests', src_dir=True)
         
+    

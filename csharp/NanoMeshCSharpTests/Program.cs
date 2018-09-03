@@ -63,6 +63,7 @@ namespace NanoMeshCSharpTests
 
         static void Main(string[] args)
         {
+            Console.WriteLine("=== NanoMesh C# Tests ===");
             TestMissingMesh();
             TestMeshLoader();
 
