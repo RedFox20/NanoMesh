@@ -13,7 +13,7 @@ namespace NanoMeshCSharpTests
         {
             try
             {
-                var model = MeshLoader.Load("does_not_exists.obj", new Options());
+                var mesh = MeshLoader.Load("does_not_exists.obj");
             }
             catch (Exception e)
             {
@@ -25,8 +25,7 @@ namespace NanoMeshCSharpTests
         {
             try
             {
-                var o = new Options { ForceSingleGroup = true };
-                var model = MeshLoader.Load("head_male.obj", o);
+                var mesh = MeshLoader.Load("head_male.obj");
             }
             catch (Exception e)
             {
@@ -38,6 +37,7 @@ namespace NanoMeshCSharpTests
         {
             TestMissingMesh();
             TestMeshLoader();
+            Console.ReadKey(true);
         }
     }
 }

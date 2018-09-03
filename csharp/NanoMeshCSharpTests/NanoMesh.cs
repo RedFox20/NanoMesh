@@ -32,14 +32,6 @@ namespace Nano
     }
     #endif
 
-    public struct Model
-    {
-        public Mesh Mesh;
-        #if UNITY_2018_1_OR_NEWER
-        public Texture2D Texture;
-        #endif
-    }
-
     [StructLayout(LayoutKind.Sequential)]
     public struct Options
     {
@@ -170,8 +162,10 @@ namespace Nano
 
         #if UNITY_IOS && !UNITY_EDITOR
             public const string MeshLib = "__Internal";
-        #else
+        #elif UNITY_2018_1_OR_NEWER
 		    public const string MeshLib = "FaceOne";
+        #else
+		    public const string MeshLib = "NanoMesh";
         #endif
 
         [return: MarshalAs(UnmanagedType.LPStr)]
@@ -195,43 +189,32 @@ namespace Nano
         [DllImport(MeshLib)] static extern
         NanoMeshGroup* NanoMeshNewGroup(NanoMesh* mesh, [MarshalAs(UnmanagedType.LPStr)] string groupName);
 
-
-        public static Model Load(string meshPath,
-            #if UNITY_2018_1_OR_NEWER
-                string texturePath,
-            #endif
-                Options options
-            )
+        /// <summary>
+        /// Attempts to load an .OBJ file.
+        /// TODO: Currently only one meshgroup is supported
+        /// </summary>
+        /// <param name="meshPath">.OBJ file to load</param>
+        /// <returns>Loaded mesh or throws exception</returns>
+        public static Mesh Load(string meshPath)
         {
-            if (!File.Exists(meshPath))    throw new FileNotFoundException(meshPath);
-        #if UNITY_2018_1_OR_NEWER
-            if (!File.Exists(texturePath)) throw new FileNotFoundException(texturePath);
-        #endif
-            
-            NanoMesh* sdmesh = null;
+            if (!File.Exists(meshPath)) 
+                throw new FileNotFoundException(meshPath);
+
+            NanoMesh* nanoMesh = null;
             try
             {
-                sdmesh = NanoMeshOpen(meshPath, options);
-                if (sdmesh == null)
-                    throw new IOException($"Mesh open failed: {meshPath} \n{NanoGetLastError()}");
-
-            #if UNITY_2018_1_OR_NEWER
-                var texture = new Texture2D(1, 1);
-                if (!texture.LoadImage(File.ReadAllBytes(texturePath)))
-                    throw new IOException($"LoadModel failed to load texture {texturePath}");
-            #endif
-
-                return new Model
-                {
-                    Mesh = LoadSubmesh(sdmesh, 0),
-                #if UNITY_2018_1_OR_NEWER
-                    Texture = texture
-                #endif
-                };
+                // @todo We only support 1 meshgroup
+                var options = new Options { ForceSingleGroup = true };
+                nanoMesh = NanoMeshOpen(meshPath, options);
+                if (nanoMesh == null)
+                    throw new IOException($"Mesh open failed: {meshPath}\n{NanoGetLastError()}");
+                
+                // @todo We only support 1 meshgroup
+                return LoadSubmesh(nanoMesh, 0);
             }
             finally
             {
-                if (sdmesh != null) NanoMeshClose(sdmesh);
+                if (nanoMesh != null) NanoMeshClose(nanoMesh);
             }
         }
 
