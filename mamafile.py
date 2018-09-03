@@ -22,7 +22,7 @@ class NanoMesh(mama.BuildTarget):
     
     def build(self):
         self.cmake_build()
-        if self.windows or self.linux:
+        if self.windows:
             self.ms_build('csharp/NanoMeshCSharpTests/NanoMeshCSharpTests.sln')
     
     def package(self):
@@ -37,7 +37,7 @@ class NanoMesh(mama.BuildTarget):
 
     def test(self, args):
         self.gdb(f'bin/NanoMeshTests {args}', src_dir=True)
-        if self.windows or self.linux:
+        if self.windows:
             self.gdb('bin/NanoMeshCSharpTests', src_dir=True)
         
     
