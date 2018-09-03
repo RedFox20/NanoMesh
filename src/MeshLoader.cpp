@@ -55,7 +55,7 @@ void NanoMeshGroup::ConvertCoords(NanoMeshCoordSys coordSys)
 
 NanoMesh::NanoMesh() = default;
 
-NanoMesh::NanoMesh(strview path) : Data{ path }
+NanoMesh::NanoMesh(strview path, Options opt) : Data{ path, opt }
 {
     Groups.resize(Data.NumGroups());
     Name      = Data.Name;
@@ -87,15 +87,33 @@ NanoMeshGroup* NanoMesh::AddGroup(string groupname)
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-NANOMESH_CAPI NanoMesh* NanoMeshOpen(const char* filename)
+static string NanoError;
+NANOMESH_CAPI const char* NanoGetLastError()
 {
-    auto mesh = new NanoMesh{ filename };
-    if (!mesh->Data)
+    return NanoError.c_str();
+}
+
+NANOMESH_CAPI NanoMesh* NanoMeshOpen(const char* filename, NanoOptions options)
+{
+    try
     {
-        NanoMeshClose(mesh);
+        Options o;
+        o.CreateEmptyGroups = !!options.CreateEmptyGroups;
+        o.ForceSingleGroup = !!options.ForceSingleGroup;
+        o.LogMeshGroupInfo = !!options.LogMeshGroupInfo;
+        auto* mesh = new NanoMesh{ filename, o };
+        if (!mesh->Data)
+        {
+            NanoMeshClose(mesh);
+            return nullptr;
+        }
+        return mesh;
+    }
+    catch (const std::exception& e)
+    {
+        NanoError = e.what();
         return nullptr;
     }
-    return mesh;
 }
 
 NANOMESH_CAPI void NanoMeshClose(NanoMesh* mesh)
@@ -112,7 +130,7 @@ NANOMESH_CAPI NanoMeshGroup* NanoMeshGetGroup(NanoMesh* mesh, int groupId)
 
 NANOMESH_CAPI NanoMesh* NanoMeshCreateEmpty(const char* meshname)
 {
-    NanoMesh* mesh  = new NanoMesh{};
+    auto* mesh  = new NanoMesh{};
     mesh->Data.Name = meshname;
     mesh->Name      = mesh->Data.Name;
     return mesh;
@@ -120,7 +138,15 @@ NANOMESH_CAPI NanoMesh* NanoMeshCreateEmpty(const char* meshname)
 
 NANOMESH_CAPI bool NanoMeshSave(NanoMesh* mesh, const char* filename)
 {
-    return mesh->Data.SaveAs(filename);
+    try
+    {
+        return mesh->Data.SaveAs(filename);
+    }
+    catch (const std::exception& e)
+    {
+        NanoError = e.what();
+        return false;
+    }
 }
 
 NANOMESH_CAPI NanoMeshGroup* NanoMeshNewGroup(NanoMesh* mesh, const char* groupname)

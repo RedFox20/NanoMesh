@@ -35,3 +35,8 @@ build/
 mama.cmake
 bin/head_male.saved.fbx
 bin/NanoMeshTests
+
+bin/NanoMeshCSharpTests.exe.config
+csharp/.vs/
+csharp/NanoMeshCSharpTests/.vs/
+csharp/NanoMeshCSharpTests/obj/

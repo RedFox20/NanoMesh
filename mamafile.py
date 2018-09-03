@@ -19,13 +19,19 @@ class NanoMesh(mama.BuildTarget):
     def configure(self):
         if self.enable_fbxsdk(): self.add_cmake_options('NANO_ENABLE_FBX=ON')
         if self.enable_tests():  self.add_cmake_options('NANO_BUILD_TESTS=ON')
-
+    
+    def build(self):
+        self.cmake_build()
+        if self.windows or self.linux:
+            self.ms_build('csharp/NanoMeshCSharpTests/NanoMeshCSharpTests.sln')
+    
     def package(self):
         self.export_include('include')
         self.export_libs('lib', ['NanoMesh.lib', 'libNanoMesh.a'], src_dir=True)
         if self.enable_fbxsdk():
             if self.windows:
                 self.export_libs('lib', ['libfbxsdk.dll'], src_dir=True)
+        self.export_asset('csharp/NanoMeshCSharpTests/NanoMesh.cs')
         #if self.windows:
         #    self.export_syslib('')
 

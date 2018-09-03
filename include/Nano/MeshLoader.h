@@ -69,8 +69,8 @@ enum NanoMeshCoordSys
 struct NANOMESH_API NanoMeshGroup
 {
     // publicly visible in C#
-    int     GroupId = -1;
-    rpp::strview     Name;
+    int GroupId = -1;
+    rpp::strview Name;
     NanoMaterial Mat;
     NanoArrayView<rpp::Vector3> Vertices;
     NanoArrayView<rpp::Vector3> Normals;
@@ -95,6 +95,14 @@ struct NANOMESH_API NanoMeshGroup
     void ConvertCoords(NanoMeshCoordSys coordSys);
 };
 
+// @see Nano::Options
+struct NANOMESH_API NanoOptions
+{
+    int ForceSingleGroup  = false;
+    int CreateEmptyGroups = false;
+    int LogMeshGroupInfo  = false;
+};
+
 struct NANOMESH_API NanoMesh
 {
     // publicly visible in C#
@@ -107,14 +115,15 @@ struct NANOMESH_API NanoMesh
     std::vector<std::unique_ptr<NanoMeshGroup>> Groups;
 
     NanoMesh();
-    explicit NanoMesh(rpp::strview path);
+    explicit NanoMesh(rpp::strview path, Nano::Options opt);
     NanoMeshGroup* GetGroup(int groupId);
     NanoMeshGroup* AddGroup(std::string groupname);
 };
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-NANOMESH_CAPI NanoMesh*      NanoMeshOpen(const char* filename);
+NANOMESH_CAPI const char*    NanoGetLastError(void);
+NANOMESH_CAPI NanoMesh*      NanoMeshOpen(const char* filename, NanoOptions options);
 NANOMESH_CAPI void           NanoMeshClose(NanoMesh* mesh);
 NANOMESH_CAPI NanoMeshGroup* NanoMeshGetGroup(NanoMesh* mesh, int groupId);
 
