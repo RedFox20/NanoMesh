@@ -22,7 +22,7 @@ namespace Nano
         public float X, Y, Z;
     }
 
-    public struct Mesh
+    public class Mesh
     {
         public string Name;
         public Vector3[] Vertices;
@@ -165,7 +165,7 @@ namespace Nano
         #elif UNITY_2018_1_OR_NEWER
 		    public const string MeshLib = "FaceOne";
         #else
-		    public const string MeshLib = "NanoMesh";
+		    public const string MeshLib = "NanoMeshDynamic";
         #endif
 
         [return: MarshalAs(UnmanagedType.LPStr)]
@@ -198,7 +198,7 @@ namespace Nano
         public static Mesh Load(string meshPath)
         {
             if (!File.Exists(meshPath)) 
-                throw new FileNotFoundException(meshPath);
+                throw new FileNotFoundException($"Mesh file does not exist: {meshPath}");
 
             NanoMesh* nanoMesh = null;
             try

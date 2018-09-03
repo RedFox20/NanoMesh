@@ -44,6 +44,14 @@ target_link_libraries(NanoMesh
     PRIVATE ${LIBFBX})
 install(TARGETS NanoMesh DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 
+
+add_library(NanoMeshDynamic SHARED ${NANOMESH_INCLUDES} ${NANOMESH_SOURCES})
+target_link_libraries(NanoMeshDynamic
+    PRIVATE ${MAMA_LIBS}
+    PRIVATE ${LIBFBX})
+install(TARGETS NanoMeshDynamic DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/bin)
+
+
 if(NANO_BUILD_TESTS)
     add_subdirectory(test)
 endif()
