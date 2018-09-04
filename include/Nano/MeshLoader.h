@@ -63,6 +63,37 @@ enum NanoMeshCoordSys
     CoordSysUnity,  // but you can convert to Unity coordsys using NanoMeshGroup::ConvertCoords()
 };
 
+
+// @see Nano::Options
+struct NANOMESH_API NanoOptions
+{
+    // If true, then all named meshgroups will be ignored
+    // and all verts/faces will be put into the first object group instead
+    // @note This will break multi-material support, so only use this if
+    //       you have 1 or 0 materials.
+    int ForceSingleGroup  = false;
+
+    // If true, empty groups will not be discarded and will
+    // be treated as metadata instead.
+    // Check MeshGroup::Offset for position meta
+    int CreateEmptyGroups = false;
+
+    // Log mesh group stats during loading
+    int LogMeshGroupInfo  = false;
+
+    // split non-contiguous UV shell vertices.
+    // this MAY increase vertex count, but if UV's are contiguous then vertexcount+order will remain the same
+    // needed in game engines which use AOS Vertex { vec3 pos; vec3 norm; vec2 uv; };
+    int SplitUVSeams      = false;
+
+    // flatten Normals and UV's to match vertex count
+    int PerVertexFlatten  = false;
+};
+
+
+NANOMESH_API void PrintOptions(const NanoOptions& o);
+
+
 /**
  * Triangulated mesh
  */
@@ -95,19 +126,12 @@ struct NANOMESH_API NanoMeshGroup
     void ConvertCoords(NanoMeshCoordSys coordSys);
 };
 
-// @see Nano::Options
-struct NANOMESH_API NanoOptions
-{
-    int ForceSingleGroup  = false;
-    int CreateEmptyGroups = false;
-    int LogMeshGroupInfo  = false;
-};
-
 struct NANOMESH_API NanoMesh
 {
     // publicly visible in C#
     rpp::strview Name  = "";
     int NumGroups = 0;
+    int NumVerts  = 0;
     int NumTris   = 0;
 
     // not mapped to C#
@@ -115,7 +139,7 @@ struct NANOMESH_API NanoMesh
     std::vector<std::unique_ptr<NanoMeshGroup>> Groups;
 
     NanoMesh();
-    explicit NanoMesh(rpp::strview path, Nano::Options opt);
+    explicit NanoMesh(rpp::strview path, const NanoOptions& opt);
     NanoMeshGroup* GetGroup(int groupId);
     NanoMeshGroup* AddGroup(std::string groupname);
 };

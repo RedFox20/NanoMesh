@@ -24,8 +24,6 @@ void NanoMeshGroup::InitVerts()
     if (Data.IsEmpty())
         return;
 
-    // split seam vertices to enable non-contiguous UV shells
-    Data.OptimizedFlatten();
     Data.CreateIndexArray(IndexData);
     Vertices = Data.Verts;
     Normals  = Data.Normals;
@@ -55,11 +53,29 @@ void NanoMeshGroup::ConvertCoords(NanoMeshCoordSys coordSys)
 
 NanoMesh::NanoMesh() = default;
 
-NanoMesh::NanoMesh(strview path, Options opt) : Data{ path, opt }
+static Options ToOptions(const NanoOptions& opt)
+{
+    Options o;
+    o.ForceSingleGroup  = !!opt.ForceSingleGroup;
+    o.CreateEmptyGroups = !!opt.CreateEmptyGroups;
+    o.LogMeshGroupInfo  = !!opt.LogMeshGroupInfo;
+    o.SplitUVSeams      = !!opt.SplitUVSeams;
+    o.PerVertexFlatten  = !!opt.PerVertexFlatten;
+    return o;
+}
+
+NANOMESH_API void PrintOptions(const NanoOptions& o)
+{
+    LogInfo("NanoOptions: %s", to_string(ToOptions(o)));
+}
+
+NanoMesh::NanoMesh(strview path, const NanoOptions& opt)
+    : Data{ path, ToOptions(opt) }
 {
     Groups.resize(Data.NumGroups());
     Name      = Data.Name;
     NumGroups = Data.NumGroups();
+    NumVerts  = Data.TotalVerts();
     NumTris   = Data.TotalTris();
 
     //string copy = path_combine(folder_path(path), file_name(path) + "_validate.obj");
@@ -97,11 +113,7 @@ NANOMESH_CAPI NanoMesh* NanoMeshOpen(const char* filename, NanoOptions options)
 {
     try
     {
-        Options o;
-        o.CreateEmptyGroups = !!options.CreateEmptyGroups;
-        o.ForceSingleGroup = !!options.ForceSingleGroup;
-        o.LogMeshGroupInfo = !!options.LogMeshGroupInfo;
-        auto* mesh = new NanoMesh{ filename, o };
+        auto* mesh = new NanoMesh{ filename, options };
         if (!mesh->Data)
         {
             NanoMeshClose(mesh);

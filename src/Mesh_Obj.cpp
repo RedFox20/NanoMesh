@@ -435,14 +435,11 @@ namespace Nano
             else Assert(false, "Unfamiliar CoordsMapping mode");
         }
 
-        void BuildMeshGroups(Options opt) const
+        void BuildMeshGroups() const
         {
             for (MeshGroup& g : mesh.Groups)
             {
                 BuildGroup(g);
-
-                if (opt.LogMeshGroupInfo)
-                    g.Print();
 
                 // OBJ default face winding is CCW
                 g.Winding = FaceWindCounterClockWise;
@@ -469,10 +466,11 @@ namespace Nano
             return false;
         }
 
-        if (opt.LogMeshGroupInfo)
-            LogInfo("LoadOBJ %-28s  %5zu verts  %5zu faces",
-                file_name(meshPath), loader.numVerts, loader.numFaces);
-
+        if (opt.LogMeshGroupInfo) {
+            LogInfo("Load %-33s  %5zu verts  %5zu polys",
+                file_nameext(meshPath), loader.numVerts, loader.numFaces);
+        }
+        
         // OBJ maps vertex data globally, not per-mesh-group like most game engines expect
         // so this really complicates things when we build the mesh groups...
         // to speed up mesh loading, we use very heavy stack allocation
@@ -484,15 +482,12 @@ namespace Nano
                     : malloc(loader.bufferSize);
         loader.InitPointers(mem);
         loader.ParseMeshData();
+
         if (!opt.CreateEmptyGroups)
             loader.RemoveEmptyGroups();
 
-        loader.BuildMeshGroups(opt);
-
-        if (opt.LogMeshGroupInfo)
-            LogInfo("   loaded %-28s  %5d verts  %5d tris",
-                file_name(meshPath), TotalVerts(), TotalTris());
-
+        loader.BuildMeshGroups();
+        ApplyLoadOptions(opt);
         return true;
     }
 
@@ -520,9 +515,10 @@ namespace Nano
         {
             string_buffer sb;
             // straight to file, #dontcare about perf atm
-            if (opt.LogMeshGroupInfo)
-                LogInfo("SaveOBJ %-28s  %5d verts  %5d tris", file_name(meshPath), TotalVerts(), TotalTris());
-
+            if (opt.LogMeshGroupInfo) {
+                LogInfo("Save %-33s  %5d verts  %5d tris", 
+                    file_nameext(meshPath), TotalVerts(), TotalTris());
+            }
             string matlib = rpp::file_replace_ext(meshPath, "mtl");
             strview matlibFile = rpp::file_nameext(matlib);
             if (SaveMaterials(*this, matlib, matlibFile, opt))

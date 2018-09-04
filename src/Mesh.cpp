@@ -473,6 +473,24 @@ namespace Nano
         return opt;
     }
 
+    std::string to_string(const Options& o)
+    {
+        rpp::string_buffer sb;
+        bool prepend = false;
+        auto write_flag = [&](bool flag, rpp::strview what) {
+            if (!flag) return;
+            if (prepend) sb.write('|');
+            else         prepend = true;
+            sb.write(what);
+        };
+        write_flag(o.ForceSingleGroup,  "ForceSingleGroup");
+        write_flag(o.CreateEmptyGroups, "CreateEmptyGroups");
+        write_flag(o.NoExceptions,      "NoExceptions");
+        write_flag(o.LogMeshGroupInfo,  "LogMeshGroupInfo");
+        write_flag(o.SplitUVSeams,      "SplitUVSeams");
+        write_flag(o.PerVertexFlatten,  "PerVertexFlatten");
+        return sb.str();
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -570,9 +588,28 @@ namespace Nano
         strview ext = file_ext(meshPath);
         if (ext.equalsi("fbx"_sv)) return LoadFBX(meshPath, opt);
         if (ext.equalsi("obj"_sv)) return LoadOBJ(meshPath, opt);
-
         NanoErr(opt, "Error: unrecognized mesh format for file '%s'", meshPath);
         return false;
+    }
+
+    void Mesh::ApplyLoadOptions(const Options& opt)
+    {
+        if (opt.SplitUVSeams) {
+            for (MeshGroup& g : Groups)
+                g.SplitSeamVertices();
+        }
+        if (opt.PerVertexFlatten) {
+            for (MeshGroup& g : Groups)
+                g.OptimizedFlatten();
+        }
+        if (opt.LogMeshGroupInfo) {
+            for (MeshGroup& g : Groups)
+                g.Print();
+            if (!opt.ForceSingleGroup) {
+                LogInfo("Loaded %-31s  %5d verts  %5d tris",
+                    Name, TotalVerts(), TotalTris());
+            }
+        }
     }
 
     bool Mesh::SaveAs(strview meshPath, Options opt) const

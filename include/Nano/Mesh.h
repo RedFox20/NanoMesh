@@ -308,6 +308,7 @@ namespace Nano
     struct NANOMESH_API Options
     {
         /**
+         * LOAD:
          * If true, then all named meshgroups will be ignored
          * and all verts/faces will be put into the first object group instead
          * @note This will break multi-material support, so only use this if
@@ -316,6 +317,7 @@ namespace Nano
         bool ForceSingleGroup = false;
 
         /**
+         * LOAD:
          * If true, empty groups will not be discarded and will
          * be treated as metadata instead.
          * Check MeshGroup::Offset for position meta
@@ -323,15 +325,33 @@ namespace Nano
         bool CreateEmptyGroups = false;
 
         /**
+         * LOAD+SAVE:
          * if TRUE  Mesh Load/Save throws an exception during failure
          * if FALSE Mesh Load/Save logs error and returns false
          */
         bool NoExceptions = false;
 
         /**
-         * Log mesh group stats during loading
+         * LOAD+SAVE:
+         * Log mesh group stats during load/save
          */
         bool LogMeshGroupInfo = false;
+
+        /**
+         * LOAD:
+         * Split non-contiguous UV shell vertices.
+         * This MAY increase vertex count, but if UV's are contiguous 
+         * then vertexcount+order will remain the same.
+         * needed in game engines which use Array-Of-Structs:
+         * `struct Vertex { vec3 pos; vec3 norm; vec2 uv; };`
+         */
+        bool SplitUVSeams = false;
+
+        /**
+         * LOAD:
+         * Flatten Normals and UV's to match vertex count
+         */
+        int PerVertexFlatten  = false;
 
         static const Options SingleGroup;
         static const Options EmptyGroups;
@@ -340,6 +360,8 @@ namespace Nano
 
         Options operator|(const Options& o) const;
     };
+
+    NANOMESH_API std::string to_string(const Options& o);
 
     /**
      * Load/Save errors
@@ -436,6 +458,11 @@ namespace Nano
          * @return If !NoExceptions, returns TRUE on SUCCESS
          */
         bool Load(strview meshPath, Options opt = {});
+        
+    private:
+        void ApplyLoadOptions(const Options& opt);
+
+    public:
         bool SaveAs(strview meshPath, Options opt = {}) const;
 
         // Is FBX supported on this platform?

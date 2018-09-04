@@ -415,7 +415,7 @@ namespace Nano
         {
             Name = file_name(meshPath);
             if (opt.LogMeshGroupInfo)
-                LogInfo("LoadFBX %-20s", Name);
+                LogInfo("Load %-20s", file_nameext(meshPath));
 
             // @note ConvertScene only affects the global/local matrices, it doesn't modify the vertices themselves
             FbxAxisSystem sceneAxisSys = scene->GetGlobalSettings().GetAxisSystem();
@@ -437,16 +437,14 @@ namespace Nano
                     if (auto* normals = mesh->GetElementNormal())      LoadNormals(group, normals, oldIndices);
                     if (auto* uvs     = mesh->GetElementUV())          LoadCoords(group,  uvs,     oldIndices);
                     if (auto* colors  = mesh->GetElementVertexColor()) LoadColors(group,  colors,  oldIndices);
-
-                    group.Print();
                 }
                 else if (opt.CreateEmptyGroups)
                 {
                     MeshGroup& group = CreateGroup(child->GetName());
                     SetTransform(group, child);
-                    group.Print();
                 }
             }
+            ApplyLoadOptions(opt);
             return true;
         }
         return false;
@@ -602,9 +600,10 @@ namespace Nano
 
         if (FbxNode* root = scene->GetRootNode())
         {
-            if (opt.LogMeshGroupInfo)
-                LogInfo("SaveFBX %-28s  %5d verts  %5d tris", Name, TotalVerts(), TotalTris());
-
+            if (opt.LogMeshGroupInfo) {
+                LogInfo("Save %-33s  %5d verts  %5d tris", 
+                    file_nameext(meshPath), TotalVerts(), TotalTris());
+            }
             for (const MeshGroup& group : Groups)
             {
                 group.Print();

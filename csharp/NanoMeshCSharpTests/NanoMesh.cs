@@ -54,6 +54,18 @@ namespace Nano
         /// Log mesh group stats during loading
         /// </summary>
         public bool LogMeshGroupInfo;
+
+        /// <summary>
+        /// split non-contiguous UV shell vertices.
+        /// this MAY increase vertex count, but if UV's are contiguous then vertexcount+order will remain the same
+        /// needed in game engines which use AOS Vertex { vec3 pos; vec3 norm; vec2 uv; };
+        /// </summary>
+        public bool SplitUVSeams;
+
+        /// <summary>
+        /// flatten Normals and UV's to match vertex count
+        /// </summary>
+        public bool PerVertexFlatten;
     }
 
     public unsafe class MeshLoader
@@ -124,7 +136,8 @@ namespace Nano
         {
             public readonly StrView Name;
             public readonly int NumGroups;
-            public readonly int NumFaces;
+            public readonly int NumVerts;
+            public readonly int NumTris;
         }
 
         struct NanoMaterial
@@ -191,11 +204,12 @@ namespace Nano
 
         /// <summary>
         /// Attempts to load an .OBJ file.
-        /// TODO: Currently only one meshgroup is supported
+        /// TODO: Currently only 1 meshgroup is supported
         /// </summary>
         /// <param name="meshPath">.OBJ file to load</param>
+        /// <param name="options">MeshLoader options control processing steps during loading</param>
         /// <returns>Loaded mesh or throws exception</returns>
-        public static Mesh Load(string meshPath)
+        public static Mesh Load(string meshPath, Options options)
         {
             if (!File.Exists(meshPath)) 
                 throw new FileNotFoundException($"Mesh file does not exist: {meshPath}");
@@ -203,8 +217,6 @@ namespace Nano
             NanoMesh* nanoMesh = null;
             try
             {
-                // @todo We only support 1 meshgroup
-                var options = new Options { ForceSingleGroup = true };
                 nanoMesh = NanoMeshOpen(meshPath, options);
                 if (nanoMesh == null)
                     throw new IOException($"Mesh open failed: {meshPath}\n{NanoGetLastError()}");
