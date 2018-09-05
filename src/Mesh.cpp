@@ -1,6 +1,7 @@
 #include <Nano/Mesh.h>
 #include <rpp/file_io.h>
 #include <rpp/sprint.h>
+#include <rpp/timer.h>
 #include "InternalConfig.h"
 
 namespace Nano
@@ -13,9 +14,29 @@ namespace Nano
     using namespace rpp::literals;
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
+    bool VertexDescr::operator==(const VertexDescr& vd) const
+    {
+        return v == vd.v && t == vd.t && n == vd.n && c == vd.c;
+    }
+
+    bool VertexDescr::operator!=(const VertexDescr& vd) const
+    {
+        return v != vd.v || t != vd.t || n != vd.n || c != vd.c;
+    }
+
     bool Triangle::ContainsVertexId(int vertexId) const
     {
         return a.v == vertexId || b.v == vertexId || c.v == vertexId;
+    }
+
+    bool Triangle::operator==(const Triangle& t) const
+    {
+        return a == t.a && b == t.b && c == t.c;
+    }
+
+    bool Triangle::operator!=(const Triangle& t) const
+    {
+        return a != t.a || b != t.b || c != t.c;
     }
 
     string to_string(const Triangle& triangle)
@@ -237,10 +258,10 @@ namespace Nano
 
     void MeshGroup::AddMeshData(const MeshGroup& group, Vector3 offset) noexcept
     {
-        int numVertsOld   = (int)Verts.size();
-        int numCoordsOld  = (int)Coords.size();
-        int numNormalsOld = (int)Normals.size();
-        int numTrisOld    = (int)Tris.size();
+        const int numVertsOld   = (int)Verts.size();
+        const int numCoordsOld  = (int)Coords.size();
+        const int numNormalsOld = (int)Normals.size();
+        const int numTrisOld    = (int)Tris.size();
 
         append(Verts, group.Verts);
         if (offset != Vector3::Zero())
@@ -288,7 +309,7 @@ namespace Nano
         indices.reserve(Tris.size() * 3u);
 
         int vertexId = 0;
-        auto addVertex = [&](const VertexDescr& vd)
+        const auto addVertex = [&](const VertexDescr& vd)
         {
             indices.push_back(vertexId++);
             vertices.emplace_back<BasicVertex>({
@@ -458,10 +479,10 @@ namespace Nano
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
 
-    const Options Options::SingleGroup { true,  false, false, false };
-    const Options Options::EmptyGroups { false, true,  false, false };
-    const Options Options::NoThrow     { false, false, true,  false };
-    const Options Options::LogGroups   { false, false, false, true  };
+    const Options Options::SingleGroup { true,  false, false, false, false, false };
+    const Options Options::EmptyGroups { false, true,  false, false, false, false };
+    const Options Options::NoThrow     { false, false, true,  false, false, false };
+    const Options Options::LogGroups   { false, false, false, true,  false, false };
 
     Options Options::operator|(const Options& o) const
     {
@@ -585,6 +606,7 @@ namespace Nano
 
     bool Mesh::Load(strview meshPath, Options opt)
     {
+        rpp::ScopedPerfTimer perf{ "Nano::Mesh::Load" };
         strview ext = file_ext(meshPath);
         if (ext.equalsi("fbx"_sv)) return LoadFBX(meshPath, opt);
         if (ext.equalsi("obj"_sv)) return LoadOBJ(meshPath, opt);
@@ -614,6 +636,7 @@ namespace Nano
 
     bool Mesh::SaveAs(strview meshPath, Options opt) const
     {
+        rpp::ScopedPerfTimer perf{ "Nano::Mesh::SaveAs" };
         strview ext = file_ext(meshPath);
         if (ext.equalsi("fbx"_sv)) return SaveAsFBX(meshPath, opt);
         if (ext.equalsi("obj"_sv)) return SaveAsOBJ(meshPath, opt);

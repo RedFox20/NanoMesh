@@ -45,6 +45,9 @@ namespace Nano
         int t = -1; // vertex texture index (can be -1, aka no UV info)
         int n = -1; // vertex normal index (can be -1, aka no normal info)
         int c = -1; // vertex color index (can be -1, aka no color info)
+
+        bool operator==(const VertexDescr& vd) const;
+        bool operator!=(const VertexDescr& vd) const;
     };
 
 
@@ -60,6 +63,9 @@ namespace Nano
         VertexDescr* end()   { return &c + 1; }
 
         bool ContainsVertexId(int vertexId) const;
+
+        bool operator==(const Triangle& t) const;
+        bool operator!=(const Triangle& t) const;
     };
 
     NANOMESH_API string to_string(const Triangle& triangle);

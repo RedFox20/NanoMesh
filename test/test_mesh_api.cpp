@@ -1,5 +1,9 @@
+#include <rpp/debugging.h>
 #include <rpp/tests.h>
 #include <Nano/Mesh.h>
+using Nano::Mesh;
+using Nano::Options;
+using Nano::MeshGroup;
 
 TestImpl(test_mesh_api)
 {
@@ -9,9 +13,9 @@ TestImpl(test_mesh_api)
 
     TestCase(load_and_save_obj)
     {
-        Nano::Mesh mesh { "head_male.obj", Nano::Options::LogGroups };
+        Mesh mesh { "head_male.obj", Options::LogGroups };
         AssertThat(mesh.NumGroups(), 7);
-        mesh.SaveAs("head_male.saved.obj", Nano::Options::LogGroups);
+        (void)mesh.SaveAs("head_male.saved.obj", Options::LogGroups);
     }
 
     TestCase(reload_saved_obj)
@@ -20,16 +24,66 @@ TestImpl(test_mesh_api)
 
     TestCase(load_save_fbx)
     {
-        if (!Nano::Mesh::IsFBXSupported())
+        if (!Mesh::IsFBXSupported())
             return;
-        Nano::Mesh mesh { "head_male.fbx", Nano::Options::LogGroups };
+        Mesh mesh { "head_male.fbx", Options::LogGroups };
         AssertThat(mesh.NumGroups(), 1);
-        mesh.SaveAs("head_male.saved.fbx", Nano::Options::LogGroups);
+        (void)mesh.SaveAs("head_male.saved.fbx", Options::LogGroups);
     }
 
     TestCase(force_single_group)
     {
-        Nano::Mesh mesh { "head_male.obj", Nano::Options::LogGroups|Nano::Options::SingleGroup };
+        Mesh mesh { "head_male.obj", Options::LogGroups|Options::SingleGroup };
         AssertThat(mesh.NumGroups(), 1);
+    }
+
+    template<class T>
+    static bool CompareArrays(const std::vector<T>& a, 
+                              const std::vector<T>& b,
+                              const char* what)
+    {
+        if (!AssertThat(a.size(), b.size())) {
+            LogWarning("%s array size did not match: %zu != %zu", 
+                        what, a.size(), b.size());
+            return false;
+        }
+        for (size_t i = 0; i < a.size(); ++i) {
+            if (!AssertThat(a[i], b[i])) {
+                LogWarning("%s array elements a[%d] != b[%d]", what, i, i);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    static bool AreMeshesEqual(const Mesh& a, const Mesh& b)
+    {
+        if (!AssertThat(a.NumGroups(), b.NumGroups()))
+            return false;
+        for (int i = 0; i < a.NumGroups(); ++i)
+        {
+            const MeshGroup& ga = a[i];
+            const MeshGroup& gb = b[i];
+            if (!CompareArrays(ga.Verts, gb.Verts, "Vertex")) return false;
+            if (!CompareArrays(ga.Tris, gb.Tris, "Triangle")) return false;
+            if (!CompareArrays(ga.Coords, gb.Coords, "UV"))   return false;
+            if (!CompareArrays(ga.Normals, gb.Normals, "Normals")) return false;
+        }
+        return true;
+    }
+
+    TestCase(validate_load_save_consistency)
+    {
+        const Options options = Options::SingleGroup | Options::LogGroups;
+        Mesh mesh{ "head_male.obj", options };
+
+        (void)mesh.SaveAs("head_male.consistency.obj", options);
+        const Mesh mesh1{ "head_male.consistency.obj", options };
+
+        if (!AreMeshesEqual(mesh, mesh1)) {
+            LogWarning("Saved mesh is not consistent with original mesh!");
+        } else {
+            LogInfo("Saved mesh is consistent.");
+        }
     }
 };
