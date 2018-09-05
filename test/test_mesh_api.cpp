@@ -14,7 +14,7 @@ TestImpl(test_mesh_api)
     TestCase(load_and_save_obj)
     {
         Mesh mesh { "head_male.obj", Options::LogGroups };
-        AssertThat(mesh.NumGroups(), 7);
+        AssertThat(mesh.NumGroups(), 1);
         (void)mesh.SaveAs("head_male.saved.obj", Options::LogGroups);
     }
 
