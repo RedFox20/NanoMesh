@@ -56,11 +56,11 @@ NanoMesh::NanoMesh() = default;
 static Options ToOptions(const NanoOptions& opt)
 {
     Options o;
-    o.ForceSingleGroup  = !!opt.ForceSingleGroup;
-    o.CreateEmptyGroups = !!opt.CreateEmptyGroups;
-    o.LogMeshGroupInfo  = !!opt.LogMeshGroupInfo;
-    o.SplitUVSeams      = !!opt.SplitUVSeams;
-    o.PerVertexFlatten  = !!opt.PerVertexFlatten;
+    o.ForceSingleGroup  = opt.ForceSingleGroup  != 0;
+    o.CreateEmptyGroups = opt.CreateEmptyGroups != 0;
+    o.LogMeshGroupInfo  = opt.LogMeshGroupInfo  != 0;
+    o.SplitUVSeams      = opt.SplitUVSeams      != 0;
+    o.PerVertexFlatten  = opt.PerVertexFlatten  != 0;
     return o;
 }
 
