@@ -359,10 +359,12 @@ namespace Nano
          */
         int PerVertexFlatten  = false;
 
-        static const Options SingleGroup;
-        static const Options EmptyGroups;
-        static const Options NoThrow;
-        static const Options LogGroups;
+        static const Options SingleGroup; // ForceSingleGroup
+        static const Options EmptyGroups; // CreateEmptyGroups
+        static const Options NoThrow;     // NoExceptions
+        static const Options LogGroups;   // LogMeshGroupInfo
+        static const Options SplitSeams;  // SplitUVSeams
+        static const Options Flatten;     // PerVertexFlatten
 
         Options operator|(const Options& o) const;
     };

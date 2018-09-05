@@ -64,17 +64,21 @@ TestImpl(test_mesh_api)
         {
             const MeshGroup& ga = a[i];
             const MeshGroup& gb = b[i];
-            if (!CompareArrays(ga.Verts, gb.Verts, "Vertex")) return false;
-            if (!CompareArrays(ga.Tris, gb.Tris, "Triangle")) return false;
-            if (!CompareArrays(ga.Coords, gb.Coords, "UV"))   return false;
-            if (!CompareArrays(ga.Normals, gb.Normals, "Normals")) return false;
+            if (!CompareArrays(ga.Verts,   gb.Verts,   "Vertex"))   return false;
+            if (!CompareArrays(ga.Tris,    gb.Tris,    "Triangle")) return false;
+            if (!CompareArrays(ga.Coords,  gb.Coords,  "UV"))       return false;
+            if (!CompareArrays(ga.Normals, gb.Normals, "Normals"))  return false;
         }
         return true;
     }
 
     TestCase(validate_load_save_consistency)
     {
-        const Options options = Options::SingleGroup | Options::LogGroups;
+        const Options options = Options::SingleGroup
+            | Options::LogGroups
+            | Options::SplitSeams
+            // | Options::Flatten
+        ;
         Mesh mesh{ "head_male.obj", options };
 
         (void)mesh.SaveAs("head_male.consistency.obj", options);

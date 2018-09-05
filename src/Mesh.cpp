@@ -483,6 +483,8 @@ namespace Nano
     const Options Options::EmptyGroups { false, true,  false, false, false, false };
     const Options Options::NoThrow     { false, false, true,  false, false, false };
     const Options Options::LogGroups   { false, false, false, true,  false, false };
+    const Options Options::SplitSeams  { false, false, false, false, true,  false };
+    const Options Options::Flatten     { false, false, false, false, false, true  };
 
     Options Options::operator|(const Options& o) const
     {
@@ -491,6 +493,8 @@ namespace Nano
         opt.CreateEmptyGroups = CreateEmptyGroups | o.CreateEmptyGroups;
         opt.NoExceptions      = NoExceptions      | o.NoExceptions;
         opt.LogMeshGroupInfo  = LogMeshGroupInfo  | o.LogMeshGroupInfo;
+        opt.SplitUVSeams      = SplitUVSeams      | o.SplitUVSeams;
+        opt.PerVertexFlatten  = PerVertexFlatten  | o.PerVertexFlatten;
         return opt;
     }
 
