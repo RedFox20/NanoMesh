@@ -378,6 +378,9 @@ namespace Nano
         auto* oldCoords  = Coords.empty()  ? nullptr : Coords.data();
         auto* oldNormals = Normals.empty() ? nullptr : Normals.data();
         auto* oldColors  = Colors.empty()  ? nullptr : Colors.data();
+        if (!oldCoords && !oldNormals && !oldColors)
+            return; // nothing to do here
+        
         vector<Vector2> coords;   coords.reserve(Verts.size());
         vector<Vector3> normals; normals.reserve(Verts.size());
         vector<Color3>  colors;   colors.reserve(Verts.size());
@@ -614,6 +617,7 @@ namespace Nano
         strview ext = file_ext(meshPath);
         if (ext.equalsi("fbx"_sv)) return LoadFBX(meshPath, opt);
         if (ext.equalsi("obj"_sv)) return LoadOBJ(meshPath, opt);
+        if (ext.equalsi("txt"_sv)) return LoadTXT(meshPath, opt);
         NanoErr(opt, "Error: unrecognized mesh format for file '%s'", meshPath);
         return false;
     }
@@ -625,8 +629,7 @@ namespace Nano
                 g.SplitSeamVertices();
         }
         if (opt.PerVertexFlatten) {
-            for (MeshGroup& g : Groups)
-                g.OptimizedFlatten();
+            OptimizedFlatten();
         }
         if (opt.LogMeshGroupInfo) {
             for (MeshGroup& g : Groups)

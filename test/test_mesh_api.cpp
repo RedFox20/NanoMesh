@@ -100,18 +100,31 @@ TestImpl(test_mesh_api)
             LogWarning("Saved mesh is not consistent with original mesh!");
     }
 
-    TestCase(validate_obj_fbx_consistency)
+    static bool AreVerticesEqual(const Mesh& a, const Mesh& b)
+    {
+        if (!AssertThat(a.NumGroups(), b.NumGroups()))
+            return false;
+        for (int i = 0; i < a.NumGroups(); ++i)
+        {
+            const MeshGroup& ga = a[i];
+            const MeshGroup& gb = b[i];
+            if (!CompareArrays(ga.Verts, gb.Verts, "Vertex"))
+                return false;
+        }
+        return true;
+    }
+
+    TestCase(validate_obj_vertex_order)
     {
         const Options options = Options::SingleGroup
                               | Options::LogGroups
                               | Options::SplitSeams;
-        Mesh mesh1 { "head_male.obj", options };
-        Mesh mesh2 { "head_male.fbx", options };
-
-        if (AreMeshesEqual(mesh1, mesh2))
-            LogInfo("OBJ is consistent with FBX.");
+        Mesh a { "box_4x2x1.obj", options };
+        Mesh b { "box_4x2x1.txt", options };
+        if (AreVerticesEqual(a, b))
+            LogInfo("OBJ vertex order is correct.");
         else
-            LogWarning("OBJ is NOT consistent with FBX!");
+            LogWarning("OBJ vertex order is INCORRECT!");
 
     }
 };

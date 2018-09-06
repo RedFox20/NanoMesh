@@ -451,12 +451,14 @@ namespace Nano
                 // complicated, just copy all the data and we're done
                 if (numGroups == 1)
                 {
+                    LogInfo("CopyAllMeshDataToGroup");
                     CopyAllMeshDataToGroup(g);
                 }
                 else
                 // because OBJ stores a global list of vertices, normals, uvs,
                 // we need to completely recalculate indices and arrays for each group
                 {
+                    LogInfo("SlowBlenderHack");
                     SlowBlenderHack(g);
                 }
             }

@@ -477,9 +477,17 @@ namespace Nano
         static bool IsFBXSupported() noexcept;
         bool LoadFBX(strview meshPath, Options opt = {});
         bool LoadOBJ(strview meshPath, Options opt = {});
+        
+        /**
+         * A simple custom mesh text format, which is similar to OBJ
+         * Look at NanoMesh/bin/.txt for examples
+         * @note This is designed for testing purposes
+         */
+        bool LoadTXT(strview meshPath, Options opt = {});
 
         bool SaveAsFBX(strview meshPath, Options opt = {}) const;
         bool SaveAsOBJ(strview meshPath, Options opt = {}) const;
+        // bool SaveAsTxt(strview meshPath, Options opt = {}) const;
 
         // Recalculates all normals by find shared and non-shared vertices on the same pos
         // Currently does not respect smoothing groups
