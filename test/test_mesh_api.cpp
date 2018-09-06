@@ -88,17 +88,30 @@ TestImpl(test_mesh_api)
     {
         const Options options = Options::SingleGroup
                               | Options::LogGroups
-                              | Options::SplitSeams
-                            //   | Options::Flatten
-        ;
+                              | Options::SplitSeams;
         Mesh mesh{ "head_male.obj", options };
 
         (void)mesh.SaveAs("head_male.consistency.obj", options);
         const Mesh mesh1{ "head_male.consistency.obj", options };
 
-        if (!AreMeshesEqual(mesh, mesh1))
-            LogWarning("Saved mesh is not consistent with original mesh!");
-        else
+        if (AreMeshesEqual(mesh, mesh1))
             LogInfo("Saved mesh is consistent.");
+        else
+            LogWarning("Saved mesh is not consistent with original mesh!");
+    }
+
+    TestCase(validate_obj_fbx_consistency)
+    {
+        const Options options = Options::SingleGroup
+                              | Options::LogGroups
+                              | Options::SplitSeams;
+        Mesh mesh1 { "head_male.obj", options };
+        Mesh mesh2 { "head_male.fbx", options };
+
+        if (AreMeshesEqual(mesh1, mesh2))
+            LogInfo("OBJ is consistent with FBX.");
+        else
+            LogWarning("OBJ is NOT consistent with FBX!");
+
     }
 };

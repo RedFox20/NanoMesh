@@ -1,6 +1,7 @@
 #include <Nano/Mesh.h>
 #include <rpp/file_io.h>
 #include <rpp/sprint.h>
+#include <rpp/timer.h>
 #include <unordered_set>
 #include <cstdlib>
 #include "InternalConfig.h"
@@ -380,23 +381,18 @@ namespace Nano
             return size;
         }
 
-        void BuildGroup(MeshGroup& g) const
+        void SlowBlenderHack(MeshGroup& g) const
         {
-            if (g.Name.empty() && g.Mat) // assign default name
-                g.Name = g.Mat->Name;
-            if (g.Tris.empty())
-                return;
-
             const bool vertexColors = numColors > 0;
 
             std::vector<int> uniqueVerts, uniqueCoords, uniqueNormals;
             uniqueVerts.reserve(g.Tris.size() * 3);
             if (g.Tris.front().a.t != -1) uniqueCoords.reserve(uniqueVerts.size());
-            if (g.Tris.front().a.n != -1) uniqueCoords.reserve(uniqueCoords.size());
+            if (g.Tris.front().a.n != -1) uniqueNormals.reserve(uniqueVerts.size());
 
             for (Triangle& face : g.Tris)
             {
-                for (VertexDescr& vd : face) 
+                for (VertexDescr& vd : face)
                 {
                     vd.v = GetNewIndex(uniqueVerts, vd.v);
                     if (vd.t != -1) vd.t = GetNewIndex(uniqueCoords, vd.t);
@@ -410,13 +406,59 @@ namespace Nano
                 for (int index : uniqueIndices)
                     dst.push_back(src[index]);
             };
-            copyElements(g.Verts,   vertsData,   uniqueVerts);
-            copyElements(g.Coords,  coordsData,  uniqueCoords);
+            copyElements(g.Verts, vertsData, uniqueVerts);
+            copyElements(g.Coords, coordsData, uniqueCoords);
             copyElements(g.Normals, normalsData, uniqueNormals);
             if (vertexColors) {
                 // OBJ colors use per-vertex mapping
                 copyElements(g.Colors, colorsData, uniqueVerts);
                 g.ColorMapping = MapPerVertex;
+            }
+        }
+
+        // when OBJ mesh has only 1 group
+        void CopyAllMeshDataToGroup(MeshGroup& g) const
+        {
+            auto copyElements = [](auto& dst, auto* src, int count) {
+                if (count > 0) dst.assign(src, src + count);
+            };
+            copyElements(g.Verts,   vertsData,   numVerts);
+            copyElements(g.Coords,  coordsData,  numCoords);
+            copyElements(g.Normals, normalsData, numNormals);
+            if (numColors > 0) {
+                // OBJ colors use per-vertex mapping
+                copyElements(g.Colors, colorsData, numColors);
+                g.ColorMapping = MapPerVertex;
+            }
+        }
+
+        void BuildGroup(MeshGroup& g, int numGroups) const
+        {
+            if (g.Name.empty() && g.Mat) // assign default name
+                g.Name = g.Mat->Name;
+            if (g.Tris.empty())
+                return;
+
+            rpp::Timer t;
+            const bool useSlowBlenderHack = false;
+            if (useSlowBlenderHack)
+            {
+                SlowBlenderHack(g);
+            }
+            else
+            {
+                // if total number of groups is 1, then we don't need anything
+                // complicated, just copy all the data and we're done
+                if (numGroups == 1)
+                {
+                    CopyAllMeshDataToGroup(g);
+                }
+                else
+                // because OBJ stores a global list of vertices, normals, uvs,
+                // we need to completely recalculate indices and arrays for each group
+                {
+                    SlowBlenderHack(g);
+                }
             }
 
             int numVerts   = g.NumVerts();
@@ -433,13 +475,15 @@ namespace Nano
             else if (numCoords == numVerts)  g.CoordsMapping  = MapPerVertex;
             else if (numCoords >  numVerts)  g.CoordsMapping  = MapPerFaceVertex;
             else Assert(false, "Unfamiliar CoordsMapping mode");
+
+            LogInfo("BuildGroup %s elapsed: %.1fms", g.Name, t.elapsed_ms());
         }
 
         void BuildMeshGroups() const
         {
             for (MeshGroup& g : mesh.Groups)
             {
-                BuildGroup(g);
+                BuildGroup(g, (int)mesh.Groups.size());
 
                 // OBJ default face winding is CCW
                 g.Winding = FaceWindCounterClockWise;
