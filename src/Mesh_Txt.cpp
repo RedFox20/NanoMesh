@@ -103,6 +103,34 @@ namespace Nano
         }
     }
 
+    static void BuildGroup(MeshGroup& g)
+    {
+        int numVerts   = g.NumVerts();
+        int numNormals = g.NumNormals();
+        int numCoords  = g.NumCoords();
+        int numTris    = g.NumTris();
+
+        if      (numNormals <= 0)        g.NormalsMapping = MapNone;
+        else if (numNormals == numVerts) g.NormalsMapping = MapPerVertex;
+        else if (numNormals == numTris)  g.NormalsMapping = MapPerFace;
+        else if (numNormals >  numVerts) g.NormalsMapping = MapPerFaceVertex;
+        else                             g.NormalsMapping = MapSharedElements;
+        if      (numCoords == 0)         g.CoordsMapping  = MapNone;
+        else if (numCoords == numVerts)  g.CoordsMapping  = MapPerVertex;
+        else if (numCoords >  numVerts)  g.CoordsMapping  = MapPerFaceVertex;
+        else Assert(false, "Unfamiliar CoordsMapping mode");
+    }
+
+    static void BuildGroups(Mesh& mesh)
+    {
+        for (MeshGroup& g : mesh.Groups)
+        {
+            BuildGroup(g);
+            // our TXT default face winding is CCW
+            g.Winding = FaceWindCounterClockWise;
+        }
+    }
+
     bool Mesh::LoadTXT(strview meshPath, Options opt)
     {
         Clear();
@@ -111,6 +139,10 @@ namespace Nano
         if (!parser) {
             NanoErr(opt, "Failed to open file: %s", meshPath);
             return false;
+        }
+
+        if (opt.LogMeshGroupInfo) {
+            LogInfo("Load %s", file_nameext(meshPath));
         }
 
         MeshGroup* g = nullptr;
@@ -147,6 +179,7 @@ namespace Nano
             }
         }
         
+        BuildGroups(*this);
         ApplyLoadOptions(opt);
         return false;
     }

@@ -118,13 +118,16 @@ TestImpl(test_mesh_api)
     {
         const Options options = Options::SingleGroup
                               | Options::LogGroups
-                              | Options::SplitSeams;
+                              | Options::SplitSeams
+                              | Options::Flatten;
         Mesh a { "box_4x2x1.obj", options };
         Mesh b { "box_4x2x1.txt", options };
-        if (AreVerticesEqual(a, b))
+        if (AreMeshesEqual(a, b))
             LogInfo("OBJ vertex order is correct.");
         else
             LogWarning("OBJ vertex order is INCORRECT!");
-
+        
+        a[0].PrintVerts("Box.OBJ");
+        b[0].PrintVerts("Box.TXT");
     }
 };

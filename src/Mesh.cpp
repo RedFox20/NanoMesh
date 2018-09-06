@@ -471,9 +471,24 @@ namespace Nano
         if (NumVerts())  sb.writef("  %5d verts", NumVerts());
         if (NumTris())   sb.writef("  %5d tris", NumTris());
         if (NumCoords()) sb.writef("  %5d uvs", NumCoords());
+        if (NumNormals())sb.writef("  %5d normals", NumNormals());
         if (NumColors()) sb.writef("  %5d colors", NumColors());
         if (Offset != Vector3::Zero()) {
             char buf[48]; sb.writef("  offset:%s", Offset.toString(buf));
+        }
+        LogInfo("%.*s", sb.size(), sb.data());
+    }
+
+    void MeshGroup::PrintVerts(const char* what) const
+    {
+        if (!what) what = Name.c_str();
+        const int numVerts = NumVerts();
+        const Vector3* verts = VertexData();
+        string_buffer sb;
+        sb.writef("%s vertices[%d]:", what, numVerts);
+        for (int i = 0; i < numVerts; ++i) {
+            const Vector3& v = verts[i];
+            sb.writef("\n  [%d] { %.3f, %.3f, %.3f }", i, v.x, v.y, v.z);
         }
         LogInfo("%.*s", sb.size(), sb.data());
     }

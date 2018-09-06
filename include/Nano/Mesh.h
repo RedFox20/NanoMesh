@@ -301,6 +301,9 @@ namespace Nano
 
         // prints group info to stdout
         void Print() const;
+
+        // prints vertex info to stdout
+        void PrintVerts(const char* what = nullptr) const;
     };
 
 
