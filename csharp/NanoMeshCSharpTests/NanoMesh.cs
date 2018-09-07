@@ -244,6 +244,7 @@ namespace Nano
                 uv        = g->Coords.AsArray,
                 triangles = g->Indices.AsArray
             };
+            mesh.RecalculateTangents();
             mesh.RecalculateBounds();
         #else
             var mesh = new Mesh
