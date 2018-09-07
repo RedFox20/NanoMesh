@@ -66,6 +66,11 @@ namespace Nano
         /// flatten Normals and UV's to match vertex count
         /// </summary>
         public bool PerVertexFlatten;
+
+        /// <summary>
+        /// Prepare mesh data so it's suitable to Unity
+        /// </summary>
+        public bool Unity;
     }
 
     public unsafe class MeshLoader

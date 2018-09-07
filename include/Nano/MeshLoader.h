@@ -88,6 +88,9 @@ struct NANOMESH_API NanoOptions
 
     // flatten Normals and UV's to match vertex count
     int PerVertexFlatten  = false;
+
+    // prepare mesh data so it's suitable to unity
+    int Unity = false;
 };
 
 

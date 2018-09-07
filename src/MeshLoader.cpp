@@ -24,6 +24,12 @@ void NanoMeshGroup::InitVerts()
     if (Data.IsEmpty())
         return;
 
+    // UNITY HACK:
+    for (Vector3& v : Data.Verts)
+        v.x = -v.x;
+    for (Vector3& n : Data.Normals)
+        n.x = -n.x;
+
     Data.CreateIndexArray(IndexData);
     Vertices = Data.Verts;
     Normals  = Data.Normals;
