@@ -431,17 +431,34 @@ namespace Nano
 
     void MeshGroup::CreateIndexArray(vector<int>& indices) const noexcept
     {
-        indices.clear();
-        indices.reserve(Tris.size() * 3u);
-
-        for (const Triangle& face : Tris)
-            for (const VertexDescr& vd : face)
-                indices.push_back(vd.v);
+        CreateIndexArray(indices, Winding);
     }
 
     void MeshGroup::CreateIndexArray(vector<unsigned>& indices) const noexcept
     {
-        CreateIndexArray(reinterpret_cast<vector<int>&>(indices));
+        CreateIndexArray(reinterpret_cast<vector<int>&>(indices), Winding);
+    }
+
+    void MeshGroup::CreateIndexArray(vector<int>& indices, FaceWindOrder winding) const noexcept
+    {
+        indices.clear();
+        indices.reserve(Tris.size() * 3u);
+        if (Winding == winding)
+        {
+            for (const Triangle& face : Tris) {
+                indices.push_back(face.a.v);
+                indices.push_back(face.b.v);
+                indices.push_back(face.c.v);
+            }
+        }
+        else // flip the winding, 0 1 2 --> 0 2 1
+        {
+            for (const Triangle& face : Tris) {
+                indices.push_back(face.a.v);
+                indices.push_back(face.c.v);
+                indices.push_back(face.b.v);
+            }
+        }
     }
 
     PickedTriangle MeshGroup::PickTriangle(const Ray& ray) const noexcept

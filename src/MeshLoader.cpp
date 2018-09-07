@@ -30,7 +30,8 @@ void NanoMeshGroup::InitVerts()
     for (Vector3& n : Data.Normals)
         n.x = -n.x;
 
-    Data.CreateIndexArray(IndexData);
+    // UNITY HACK WINDING:
+    Data.CreateIndexArray(IndexData, FaceWindClockWise);
     Vertices = Data.Verts;
     Normals  = Data.Normals;
     Coords   = Data.Coords;

@@ -286,8 +286,10 @@ namespace Nano
         // SplitSeamVertices() && PerVertexFlatten()
         void OptimizedFlatten() noexcept;
 
-        void CreateIndexArray(vector<int> &indices) const noexcept;
-        void CreateIndexArray(vector<unsigned int> &indices) const noexcept;
+        void CreateIndexArray(vector<int>& indices) const noexcept;
+        void CreateIndexArray(vector<unsigned int>& indices) const noexcept;
+
+        void CreateIndexArray(vector<int>& indices, FaceWindOrder winding) const noexcept;
 
         // Pick the closest face that intersects with the ray
         PickedTriangle PickTriangle(const Ray& ray) const noexcept;
