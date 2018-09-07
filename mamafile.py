@@ -31,7 +31,7 @@ class NanoMesh(mama.BuildTarget):
         if self.enable_fbxsdk():
             if self.windows:
                 self.export_libs('lib', ['libfbxsdk.dll'], src_dir=True)
-        self.export_asset('csharp/NanoMeshCSharpTests/NanoMesh.cs')
+        self.export_asset('csharp/NanoMeshCSharpTests/NanoMesh.cs', category='csharp')
         #if self.windows:
         #    self.export_syslib('')
 
