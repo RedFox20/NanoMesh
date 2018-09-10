@@ -32,45 +32,71 @@ namespace Nano
     }
     #endif
 
-    [StructLayout(LayoutKind.Sequential)]
-    public struct Options
+    [Flags]
+    public enum Options
     {
+        None = 0,
+
         /// <summary>
+        /// LOAD:
         /// If true, then all named meshgroups will be ignored
         /// and all verts/faces will be put into the first object group instead
         /// @note This will break multi-material support, so only use this if
         ///       you have 1 or 0 materials.
         /// </summary>
-        public bool ForceSingleGroup;
+        SingleGroup = (1 << 1),
 
         /// <summary>
+        /// LOAD:
         /// If true, empty groups will not be discarded and will
         /// be treated as metadata instead.
         /// Check MeshGroup::Offset for position meta
         /// </summary>
-        public bool CreateEmptyGroups;
+        EmptyGroups = (1 << 2),
 
         /// <summary>
         /// Log mesh group stats during loading
         /// </summary>
-        public bool LogMeshGroupInfo;
+        NoThrow = (1 << 3),
 
         /// <summary>
-        /// split non-contiguous UV shell vertices.
-        /// this MAY increase vertex count, but if UV's are contiguous then vertexcount+order will remain the same
-        /// needed in game engines which use AOS Vertex { vec3 pos; vec3 norm; vec2 uv; };
+        /// LOAD+SAVE:
+        /// Log mesh group stats during load/save
         /// </summary>
-        public bool SplitUVSeams;
+        Log = (1 << 4),
 
         /// <summary>
-        /// flatten Normals and UV's to match vertex count
+        /// LOAD:
+        /// Split non-contiguous UV shell vertices.
+        /// This MAY increase vertex count, but if UV's are contiguous
+        /// then vertexcount+order will remain the same.
+        /// needed in game engines which use Array-Of-Structs:
+        /// `struct Vertex { vec3 pos; vec3 norm; vec2 uv; };`
         /// </summary>
-        public bool PerVertexFlatten;
+        SplitSeams = (1 << 5),
 
         /// <summary>
-        /// Prepare mesh data so it's suitable to Unity
+        /// LOAD:
+        /// Flatten Normals and UV's to match vertex count
         /// </summary>
-        public bool Unity;
+        Flatten = (1 << 6),
+
+        /// <summary>
+        /// LOAD:
+        /// Converts faces to ClockWise if mesh face winding is CounterClockWise
+        /// </summary>
+        ClockWise = (1 << 7),
+
+        /// <summary>
+        /// LOAD:
+        /// This will enable specific settings for Unity compatibility:
+        /// + Options::SingleGroup
+        /// + Options::SplitSeams
+        /// + Options::Flatten
+        /// + Options::ClockWise
+        /// + CoordSys::Unity
+        /// </summary>
+        Unity = (1 << 8),
     }
 
     public unsafe class MeshLoader

@@ -30,8 +30,6 @@ void NanoMeshGroup::InitVerts()
     if (Group.IsEmpty())
         return;
 
-
-
     Group.CreateIndexArray(IndexData);
     Vertices = Group.Verts;
     Normals  = Group.Normals;

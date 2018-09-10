@@ -31,21 +31,14 @@ namespace NanoMeshCSharpTests
                 Print(ConsoleColor.Green, $"Assert passed: {message}");
         }
 
-        static Options DefaultOptions()
-        {
-            return new Options
-            {
-                ForceSingleGroup = true,
-                SplitUVSeams = true,
-                PerVertexFlatten = true,
-            };
-        }
+        static Options DefaultOptions =>
+            Options.SingleGroup | Options.SplitSeams | Options.Flatten;
 
         static void TestMissingMesh()
         {
             try
             {
-                var mesh = MeshLoader.Load("does_not_exists.obj", DefaultOptions());
+                var mesh = MeshLoader.Load("does_not_exists.obj", DefaultOptions);
                 Assert(false, "Expected exception for files that don't exist");
             }
             catch (Exception e)
@@ -58,7 +51,7 @@ namespace NanoMeshCSharpTests
         {
             try
             {
-                var mesh = MeshLoader.Load("head_male.obj", DefaultOptions());
+                var mesh = MeshLoader.Load("head_male.obj", DefaultOptions);
                 Assert(mesh != null, "MeshLoader.Load(head_male.obj) not null");
                 Assert(mesh.Vertices.Length > 0, $"Mesh has vertices {mesh.Vertices.Length}");
                 Assert(mesh.Normals.Length > 0,  $"Mesh has normals  {mesh.Normals.Length}");

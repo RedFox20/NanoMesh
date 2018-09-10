@@ -412,7 +412,7 @@ namespace Nano
         }
 
         // when OBJ mesh has only 1 group
-        void CopyAllMeshDataToGroup(MeshGroup& g) const
+        void CopyAllMeshDataToOneGroup(MeshGroup& g) const
         {
             auto copyElements = [](auto& dst, auto* src, int count) {
                 if (count > 0) dst.assign(src, src + count);
@@ -435,27 +435,17 @@ namespace Nano
                 return;
 
             rpp::Timer t;
-            const bool useSlowBlenderHack = false;
-            if (useSlowBlenderHack)
+            // if total number of groups is 1, then we don't need anything
+            // complicated, just copy all the data and we're done
+            if (numGroups == 1)
             {
-                SlowBlenderHack(g);
+                CopyAllMeshDataToOneGroup(g);
             }
             else
-            {
-                // if total number of groups is 1, then we don't need anything
-                // complicated, just copy all the data and we're done
-                if (numGroups == 1)
-                {
-                    LogInfo("CopyAllMeshDataToGroup");
-                    CopyAllMeshDataToGroup(g);
-                }
-                else
                 // because OBJ stores a global list of vertices, normals, uvs,
                 // we need to completely recalculate indices and arrays for each group
-                {
-                    LogInfo("SlowBlenderHack");
-                    SlowBlenderHack(g);
-                }
+            {
+                SlowBlenderHack(g);
             }
 
             int numVerts   = g.NumVerts();
