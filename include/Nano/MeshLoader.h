@@ -1,6 +1,8 @@
 #pragma once
 /**
- * Provides a C compatible mesh interface.
+ * Provides a C ABI compatible mesh interface.
+ * This is not usable directly from C99, but can instead
+ * be used to build a C# OBJ loader wrapper, since the ABI is simplified and stable.
  */
 #include "Mesh.h"
 
@@ -57,44 +59,8 @@ template<class T> struct NanoArrayView
     FINLINE T& operator[](int index) { return Data[index]; }
 };
 
-enum NanoMeshCoordSys
-{
-    CoordSysOpenGL, // by default we load mesh files in OpenGL coordinate system
-    CoordSysUnity,  // but you can convert to Unity coordsys using NanoMeshGroup::ConvertCoords()
-};
 
-
-// @see Nano::Options
-struct NANOMESH_API NanoOptions
-{
-    // If true, then all named meshgroups will be ignored
-    // and all verts/faces will be put into the first object group instead
-    // @note This will break multi-material support, so only use this if
-    //       you have 1 or 0 materials.
-    int ForceSingleGroup  = false;
-
-    // If true, empty groups will not be discarded and will
-    // be treated as metadata instead.
-    // Check MeshGroup::Offset for position meta
-    int CreateEmptyGroups = false;
-
-    // Log mesh group stats during loading
-    int LogMeshGroupInfo  = false;
-
-    // split non-contiguous UV shell vertices.
-    // this MAY increase vertex count, but if UV's are contiguous then vertexcount+order will remain the same
-    // needed in game engines which use AOS Vertex { vec3 pos; vec3 norm; vec2 uv; };
-    int SplitUVSeams      = false;
-
-    // flatten Normals and UV's to match vertex count
-    int PerVertexFlatten  = false;
-
-    // prepare mesh data so it's suitable to unity
-    int Unity = false;
-};
-
-
-NANOMESH_API void PrintOptions(const NanoOptions& o);
+NANOMESH_API void PrintOptions(Nano::Options o);
 
 
 /**
@@ -109,24 +75,21 @@ struct NANOMESH_API NanoMeshGroup
     NanoArrayView<rpp::Vector3> Vertices;
     NanoArrayView<rpp::Vector3> Normals;
     NanoArrayView<rpp::Vector2> Coords;
-    NanoArrayView<int>     Indices;
+    NanoArrayView<int>          Indices;
 
     rpp::Vector3 Offset   = rpp::Vector3::Zero();
     rpp::Vector3 Rotation = rpp::Vector3::Zero(); // Euler XYZ DEGREES
     rpp::Vector3 Scale    = rpp::Vector3::One();
 
-    NanoMeshCoordSys CoordSys = CoordSysUnity;
-
     // not mapped to C#
-    Nano::Mesh& Owner;
-    Nano::MeshGroup& Data;
+    Nano::Mesh&       Owner;
+    Nano::MeshGroup&  Group;
     Nano::vector<int> IndexData;
 
     explicit NanoMeshGroup(Nano::Mesh& mesh, Nano::MeshGroup& group);
     explicit NanoMeshGroup(Nano::Mesh& mesh, int groupId);
 
     void InitVerts();
-    void ConvertCoords(NanoMeshCoordSys coordSys);
 };
 
 struct NANOMESH_API NanoMesh
@@ -142,15 +105,15 @@ struct NANOMESH_API NanoMesh
     std::vector<std::unique_ptr<NanoMeshGroup>> Groups;
 
     NanoMesh();
-    explicit NanoMesh(rpp::strview path, const NanoOptions& opt);
+    explicit NanoMesh(rpp::strview path, Nano::Options options);
     NanoMeshGroup* GetGroup(int groupId);
     NanoMeshGroup* AddGroup(std::string groupname);
 };
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-NANOMESH_CAPI const char*    NanoGetLastError(void);
-NANOMESH_CAPI NanoMesh*      NanoMeshOpen(const char* filename, NanoOptions options);
+NANOMESH_CAPI const char*    NanoGetLastError();
+NANOMESH_CAPI NanoMesh*      NanoMeshOpen(const char* filename, Nano::Options options);
 NANOMESH_CAPI void           NanoMeshClose(NanoMesh* mesh);
 NANOMESH_CAPI NanoMeshGroup* NanoMeshGetGroup(NanoMesh* mesh, int groupId);
 

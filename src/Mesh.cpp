@@ -98,16 +98,33 @@ namespace Nano
         return *Mat;
     }
 
-    void MeshGroup::InvertFaceWindingOrder()
+    void MeshGroup::SetFaceWinding(FaceWinding winding) noexcept
     {
-        for (Triangle& tri : Tris)
-        {
+        if (Winding == winding)
+            return;
+        for (Triangle& tri : Tris) {
             // 0 1 2 --> 0 2 1
             swap(tri.b, tri.c);
         }
+        Winding = winding;
+    }
 
-        // flip the winding tag
-        Winding = (Winding == FaceWindClockWise) ? FaceWindCounterClockWise : FaceWindClockWise;
+    void MeshGroup::SetCoordSys(CoordSys targetSystem) noexcept
+    {
+        if (System == targetSystem)
+            return;
+
+        auto isBilateralMatch = [=](CoordSys a, CoordSys b) {
+            return (System == a && targetSystem == b)
+                || (System == b && targetSystem == a);
+        };
+
+        if (isBilateralMatch(CoordSys::GL, CoordSys::Unity)) {
+            for (Vector3& v : Verts)   v.x = -v.x;
+            for (Vector3& n : Normals) n.x = -n.x;
+        }
+
+        System = targetSystem;
     }
 
     void MeshGroup::UpdateNormal(const VertexDescr& vd0, 
@@ -160,12 +177,12 @@ namespace Nano
         for (Vector3& normal : Normals)
             normal = Vector3::Zero();
 
-        FaceWindOrder winding = Winding;
+        FaceWinding winding = Winding;
 
         // normals are calculated for each tri:
         for (const Triangle& tri : Tris)
         {
-            if (winding == FaceWindCounterClockWise)
+            if (winding == FaceWinding::CCW)
             {
                 UpdateNormal(tri.a, tri.b, tri.c, checkDuplicateVerts);
             }
@@ -439,7 +456,7 @@ namespace Nano
         CreateIndexArray(reinterpret_cast<vector<int>&>(indices), Winding);
     }
 
-    void MeshGroup::CreateIndexArray(vector<int>& indices, FaceWindOrder winding) const noexcept
+    void MeshGroup::CreateIndexArray(vector<int>& indices, FaceWinding winding) const noexcept
     {
         indices.clear();
         indices.reserve(Tris.size() * 3u);
@@ -513,27 +530,7 @@ namespace Nano
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
-
-    const Options Options::SingleGroup { true,  false, false, false, false, false };
-    const Options Options::EmptyGroups { false, true,  false, false, false, false };
-    const Options Options::NoThrow     { false, false, true,  false, false, false };
-    const Options Options::LogGroups   { false, false, false, true,  false, false };
-    const Options Options::SplitSeams  { false, false, false, false, true,  false };
-    const Options Options::Flatten     { false, false, false, false, false, true  };
-
-    Options Options::operator|(const Options& o) const
-    {
-        Options opt;
-        opt.ForceSingleGroup  = ForceSingleGroup  | o.ForceSingleGroup;
-        opt.CreateEmptyGroups = CreateEmptyGroups | o.CreateEmptyGroups;
-        opt.NoExceptions      = NoExceptions      | o.NoExceptions;
-        opt.LogMeshGroupInfo  = LogMeshGroupInfo  | o.LogMeshGroupInfo;
-        opt.SplitUVSeams      = SplitUVSeams      | o.SplitUVSeams;
-        opt.PerVertexFlatten  = PerVertexFlatten  | o.PerVertexFlatten;
-        return opt;
-    }
-
-    std::string to_string(const Options& o)
+    std::string to_string(Options o)
     {
         rpp::string_buffer sb;
         bool prepend = false;
@@ -543,12 +540,14 @@ namespace Nano
             else         prepend = true;
             sb.write(what);
         };
-        write_flag(o.ForceSingleGroup,  "ForceSingleGroup");
-        write_flag(o.CreateEmptyGroups, "CreateEmptyGroups");
-        write_flag(o.NoExceptions,      "NoExceptions");
-        write_flag(o.LogMeshGroupInfo,  "LogMeshGroupInfo");
-        write_flag(o.SplitUVSeams,      "SplitUVSeams");
-        write_flag(o.PerVertexFlatten,  "PerVertexFlatten");
+        write_flag(o & Options::SingleGroup, "SingleGroup");
+        write_flag(o & Options::EmptyGroups, "EmptyGroups");
+        write_flag(o & Options::NoThrow,     "NoThrow");
+        write_flag(o & Options::Log,         "Log");
+        write_flag(o & Options::SplitSeams,  "SplitSeams");
+        write_flag(o & Options::Flatten,     "Flatten");
+        write_flag(o & Options::ClockWise,   "ClockWise");
+        write_flag(o & Options::Unity,       "Unity");
         return sb.str();
     }
 
@@ -646,27 +645,43 @@ namespace Nano
     bool Mesh::Load(strview meshPath, Options opt)
     {
         rpp::ScopedPerfTimer perf{ "Nano::Mesh::Load" };
+
+        if (opt & Options::Unity) {
+            opt |= Options::SingleGroup | Options::SplitSeams
+                |  Options::Flatten     | Options::ClockWise;
+        }
+
         strview ext = file_ext(meshPath);
         if (ext.equalsi("fbx"_sv)) return LoadFBX(meshPath, opt);
         if (ext.equalsi("obj"_sv)) return LoadOBJ(meshPath, opt);
         if (ext.equalsi("txt"_sv)) return LoadTXT(meshPath, opt);
         NanoErr(opt, "Error: unrecognized mesh format for file '%s'", meshPath);
-        return false;
     }
 
-    void Mesh::ApplyLoadOptions(const Options& opt)
+    void Mesh::ApplyLoadOptions(Options opt)
     {
-        if (opt.SplitUVSeams) {
+        if (opt & Options::SplitSeams) {
+            SplitSeamVertices();
             for (MeshGroup& g : Groups)
                 g.SplitSeamVertices();
         }
-        if (opt.PerVertexFlatten) {
+        if (opt & Options::Flatten) {
             OptimizedFlatten();
         }
-        if (opt.LogMeshGroupInfo) {
-            for (MeshGroup& g : Groups)
+
+        FaceWinding winding = (opt & Options::ClockWise) ? FaceWinding::CW
+                                                         : FaceWinding::CCW;
+        SetFaceWinding(winding);
+
+        if (opt & Options::Unity) {
+            SetCoordSys(CoordSys::Unity);
+        }
+
+        if (opt & Options::Log) {
+            for (MeshGroup& g : Groups) {
                 g.Print();
-            if (!opt.ForceSingleGroup) {
+            }
+            if (!(opt & Options::SingleGroup)) {
                 LogInfo("Loaded %-31s  %5d verts  %5d tris",
                     Name, TotalVerts(), TotalTris());
             }
@@ -681,7 +696,6 @@ namespace Nano
         if (ext.equalsi("obj"_sv)) return SaveAsOBJ(meshPath, opt);
 
         NanoErr(opt, "Error: unrecognized mesh format for file '%s'", meshPath);
-        return false;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -734,6 +748,12 @@ namespace Nano
         return bounds;
     }
 
+    void Mesh::SplitSeamVertices() noexcept
+    {
+        for (MeshGroup& g : Groups)
+            g.SplitSeamVertices();
+    }
+
     void Mesh::FlattenMeshData() noexcept
     {
         for (MeshGroup& group : Groups)
@@ -751,6 +771,20 @@ namespace Nano
     {
         for (MeshGroup& group : Groups)
             group.OptimizedFlatten();
+    }
+
+    void Mesh::SetFaceWinding(FaceWinding winding) noexcept
+    {
+        for (MeshGroup& g : Groups) {
+            g.SetFaceWinding(winding);
+        }
+    }
+
+    void Mesh::SetCoordSys(CoordSys targetSystem) noexcept
+    {
+        for (MeshGroup& g : Groups) {
+            g.SetCoordSys(targetSystem);
+        }
     }
 
     void Mesh::MergeGroups() noexcept

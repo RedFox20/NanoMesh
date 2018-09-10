@@ -28,7 +28,7 @@ namespace Nano
     using std::string;
     using std::vector;
     using std::shared_ptr;
-    
+
     using rpp::strview;
     using rpp::Vector2;
     using rpp::Vector3;
@@ -55,12 +55,12 @@ namespace Nano
     {
         VertexDescr a, b, c;
 
-        VertexDescr&       operator[](int index)       { return (&a)[index]; }
+        VertexDescr&       operator[](int index) { return (&a)[index]; }
         const VertexDescr& operator[](int index) const { return (&a)[index]; }
         const VertexDescr* begin() const { return &a; }
         const VertexDescr* end()   const { return &c + 1; }
         VertexDescr* begin() { return &a; }
-        VertexDescr* end()   { return &c + 1; }
+        VertexDescr* end() { return &c + 1; }
 
         bool ContainsVertexId(int vertexId) const;
 
@@ -82,13 +82,13 @@ namespace Nano
         string NormalPath;
         string EmissivePath;
 
-        Color3 AmbientColor  = Color3::White();
-        Color3 DiffuseColor  = Color3::White();
+        Color3 AmbientColor = Color3::White();
+        Color3 DiffuseColor = Color3::White();
         Color3 SpecularColor = Color3::White();
         Color3 EmissiveColor = Color3::Black();
 
         float Specular = 1.0f;
-        float Alpha    = 1.0f;
+        float Alpha = 1.0f;
     };
 
 
@@ -101,7 +101,7 @@ namespace Nano
         // colors are mapped for every vertex
         // normals are mapped for every vertex
         // coords are  mapped for every vertex, so UV shells must be contiguous
-        MapPerVertex, 
+        MapPerVertex,
 
         // extra data is mapped per each face vertex; data can still be shared, but this allows
         // discontiguous submesh data, which is very common
@@ -129,7 +129,7 @@ namespace Nano
     {
         // @warning These pointers will invalidate if you modify the mesh!!
         const MeshGroup* group = nullptr;
-        const Triangle*  face  = nullptr;
+        const Triangle*  face = nullptr;
         float distance = 0.0f;
         bool good() const { return group && face && distance != 0.0f; }
         explicit operator bool() const { return good(); }
@@ -157,13 +157,19 @@ namespace Nano
     };
 
 
-    enum FaceWindOrder
+    enum class FaceWinding
     {
-        FaceWindClockWise,
-        FaceWindCounterClockWise,
+        CW, // ClockWise face winding
+        CCW, // Counter-ClockWise face winding, default for OBJ loader
     };
 
-    
+    enum class CoordSys
+    {
+        GL,    // default for OBJ loader
+        Unity, // you can convert to Unity coordsys using MeshGroup::ConvertCoords()
+    };
+
+
     struct WeightId
     {
         int ID; // vertex id, -1 means invalid Vertex ID, [0] based indices
@@ -181,9 +187,9 @@ namespace Nano
         string Name; // name of the suboject
         shared_ptr<Material> Mat;
 
-        Vector3 Offset   = Vector3::Zero();
+        Vector3 Offset = Vector3::Zero();
         Vector3 Rotation = Vector3::Zero(); // XYZ Euler DEGREES
-        Vector3 Scale    = Vector3::One();
+        Vector3 Scale = Vector3::One();
 
         // we treat mesh data as 'layers', so everything except Verts is optional
         vector<Vector3> Verts;
@@ -197,7 +203,8 @@ namespace Nano
         MapMode NormalsMapping = MapNone;
         MapMode ColorMapping   = MapNone;
 
-        FaceWindOrder Winding = FaceWindClockWise;
+        FaceWinding   Winding  = FaceWinding::CW;
+        CoordSys      System   = CoordSys::GL;
 
         MeshGroup(int groupId, string name)
             : GroupId(groupId), Name(std::move(name)) {}
@@ -208,14 +215,14 @@ namespace Nano
         int NumCoords()  const { return (int)Coords.size(); }
         int NumNormals() const { return (int)Normals.size(); }
         int NumColors()  const { return (int)Colors.size(); }
-        Vector3* VertexData() { return Verts.data();   }
-        Vector2* CoordData()  { return Coords.data();  }
+        Vector3* VertexData() { return Verts.data(); }
+        Vector2* CoordData() { return Coords.data(); }
         Vector3* NormalData() { return Normals.data(); }
-        Color3*  ColorData()  { return Colors.data();  }
-        const Vector3* VertexData() const { return Verts.data();   }
-        const Vector2* CoordData()  const { return Coords.data();  }
+        Color3*  ColorData() { return Colors.data(); }
+        const Vector3* VertexData() const { return Verts.data(); }
+        const Vector2* CoordData()  const { return Coords.data(); }
         const Vector3* NormalData() const { return Normals.data(); }
-        const Color3*  ColorData()  const { return Colors.data();  }
+        const Color3*  ColorData()  const { return Colors.data(); }
 
         const Vector3& Vertex(int vertexId)          const { return Verts.data()[vertexId]; }
         const Vector3& Vertex(const VertexDescr& vd) const { return Verts.data()[vd.v]; }
@@ -223,25 +230,27 @@ namespace Nano
         const Triangle* begin() const { return &Tris.front(); }
         const Triangle* end()   const { return &Tris.back() + 1; }
         Triangle* begin() { return &Tris.front(); }
-        Triangle* end()   { return &Tris.back() + 1; }
+        Triangle* end() { return &Tris.back() + 1; }
 
         // creates and assigns a new material to this mesh group
         Material& CreateMaterial(string name);
 
-        // will flip the face winding from CW to CCW or from CCW to CW
-        void InvertFaceWindingOrder();
+        // will set the face winding to CW or CCW
+        void SetFaceWinding(FaceWinding winding) noexcept;
+
+        void SetCoordSys(CoordSys targetSystem) noexcept;
 
         bool IsFlattened() const noexcept
         {
-            return CoordsMapping  == MapPerFaceVertex
+            return CoordsMapping == MapPerFaceVertex
                 && NormalsMapping == MapPerFaceVertex
-                && ColorMapping   == MapPerFaceVertex;
+                && ColorMapping == MapPerFaceVertex;
         }
 
         void UpdateNormal(const VertexDescr& vd0,
-                          const VertexDescr& vd1,
-                          const VertexDescr& vd2,
-                          const bool checkDuplicateVerts = false) noexcept;
+            const VertexDescr& vd1,
+            const VertexDescr& vd2,
+            const bool checkDuplicateVerts = false) noexcept;
 
         // Recalculates all normals by find shared and non-shared vertices on the same pos
         // Currently does not respect smoothing groups
@@ -289,7 +298,7 @@ namespace Nano
         void CreateIndexArray(vector<int>& indices) const noexcept;
         void CreateIndexArray(vector<unsigned int>& indices) const noexcept;
 
-        void CreateIndexArray(vector<int>& indices, FaceWindOrder winding) const noexcept;
+        void CreateIndexArray(vector<int>& indices, FaceWinding winding) const noexcept;
 
         // Pick the closest face that intersects with the ray
         PickedTriangle PickTriangle(const Ray& ray) const noexcept;
@@ -316,8 +325,10 @@ namespace Nano
      * Usage:
      *     Nano::Mesh mesh { "mesh.obj", Options::NoThrow | Options::LogGroups };
      */
-    struct NANOMESH_API Options
+    enum class Options : int
     {
+        None = 0,
+
         /**
          * LOAD:
          * If true, then all named meshgroups will be ignored
@@ -325,7 +336,7 @@ namespace Nano
          * @note This will break multi-material support, so only use this if
          *       you have 1 or 0 materials.
          */
-        bool ForceSingleGroup = false;
+        SingleGroup = (1 << 1),
 
         /**
          * LOAD:
@@ -333,48 +344,71 @@ namespace Nano
          * be treated as metadata instead.
          * Check MeshGroup::Offset for position meta
          */
-        bool CreateEmptyGroups = false;
+        EmptyGroups = (1 << 2),
 
         /**
          * LOAD+SAVE:
          * if TRUE  Mesh Load/Save throws an exception during failure
          * if FALSE Mesh Load/Save logs error and returns false
          */
-        bool NoExceptions = false;
+        NoThrow = (1 << 3),
 
         /**
          * LOAD+SAVE:
          * Log mesh group stats during load/save
          */
-        bool LogMeshGroupInfo = false;
+        Log = (1 << 4),
 
         /**
          * LOAD:
          * Split non-contiguous UV shell vertices.
-         * This MAY increase vertex count, but if UV's are contiguous 
+         * This MAY increase vertex count, but if UV's are contiguous
          * then vertexcount+order will remain the same.
          * needed in game engines which use Array-Of-Structs:
          * `struct Vertex { vec3 pos; vec3 norm; vec2 uv; };`
          */
-        bool SplitUVSeams = false;
+        SplitSeams = (1 << 5),
 
         /**
          * LOAD:
          * Flatten Normals and UV's to match vertex count
          */
-        int PerVertexFlatten  = false;
+        Flatten = (1 << 6),
 
-        static const Options SingleGroup; // ForceSingleGroup
-        static const Options EmptyGroups; // CreateEmptyGroups
-        static const Options NoThrow;     // NoExceptions
-        static const Options LogGroups;   // LogMeshGroupInfo
-        static const Options SplitSeams;  // SplitUVSeams
-        static const Options Flatten;     // PerVertexFlatten
+        /**
+         * LOAD:
+         * Converts faces to ClockWise, from default CounterClockWise
+         */
+        ClockWise = (1 << 7),
 
-        Options operator|(const Options& o) const;
+        /**
+         * LOAD:
+         * This will enable specific settings for Unity compatibility:
+         * + Options::SingleGroup
+         * + Options::SplitSeams
+         * + Options::Flatten
+         * + Options::ClockWise
+         * + CoordSys::Unity
+         */
+        Unity = (1 << 8),
     };
 
-    NANOMESH_API std::string to_string(const Options& o);
+    inline Options operator|(Options a, Options b)
+    {
+        return static_cast<Options>(static_cast<int>(a) | static_cast<int>(b));
+    }
+
+    inline void operator|=(Options& a, Options b)
+    {
+        a = static_cast<Options>(static_cast<int>(a) | static_cast<int>(b));
+    }
+
+    inline bool operator&(Options a, Options b)
+    {
+        return (static_cast<int>(a) & static_cast<int>(b)) != 0;
+    }
+
+    NANOMESH_API std::string to_string(Options o);
 
     /**
      * Load/Save errors
@@ -473,7 +507,7 @@ namespace Nano
         bool Load(strview meshPath, Options opt = {});
         
     private:
-        void ApplyLoadOptions(const Options& opt);
+        void ApplyLoadOptions(Options opt);
 
     public:
         bool SaveAs(strview meshPath, Options opt = {}) const;
@@ -509,6 +543,8 @@ namespace Nano
         // Optionally appends an extra offset to position vertices
         void AddMeshData(const Mesh& mesh, Vector3 offset = Vector3::Zero()) noexcept;
 
+        void SplitSeamVertices() noexcept;
+
         // Flattens all mesh data, so MapMode is MapPerFaceVertex
         // This will make the mesh data compatible with any 3D graphics engine out there
         // However, mesh data will be thus stored less efficiently (no vertex data sharing)
@@ -519,8 +555,16 @@ namespace Nano
         void FlattenMeshData() noexcept;
         bool IsFlattened() const noexcept;
 
-        // Optimized flatten
+        // Optimized flatten is:
+        // + g.SplitSeamVertices()
+        // + g.PerVertexFlatten()
         void OptimizedFlatten() noexcept;
+
+        // Sets the face winding to all groups
+        void SetFaceWinding(FaceWinding winding) noexcept;
+
+        // Converts all MeshGroup 3D vector coord system by changing 
+        void SetCoordSys(CoordSys targetsSystem) noexcept;
 
         // Merges all imported groups into a single group
         void MergeGroups() noexcept;

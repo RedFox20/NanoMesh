@@ -127,7 +127,7 @@ namespace Nano
         {
             BuildGroup(g);
             // our TXT default face winding is CCW
-            g.Winding = FaceWindCounterClockWise;
+            g.Winding = FaceWinding::CCW;
         }
     }
 
@@ -138,10 +138,9 @@ namespace Nano
         auto parser = buffer_line_parser::from_file(meshPath);
         if (!parser) {
             NanoErr(opt, "Failed to open file: %s", meshPath);
-            return false;
         }
 
-        if (opt.LogMeshGroupInfo) {
+        if (opt & Options::Log) {
             LogInfo("Load %s", file_nameext(meshPath));
         }
 
@@ -155,7 +154,7 @@ namespace Nano
         while (parser.read_line(line))
         {
             if (line.starts_with("mesh"_sv)) {
-                bool ignoreGroup = opt.ForceSingleGroup && g;
+                bool ignoreGroup = (opt & Options::SingleGroup) && g;
                 if (!ignoreGroup) {
                     line.next(' ');
                     g = &FindOrCreateGroup(line);

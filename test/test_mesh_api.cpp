@@ -13,9 +13,9 @@ TestImpl(test_mesh_api)
 
     TestCase(load_and_save_obj)
     {
-        Mesh mesh { "head_male.obj", Options::LogGroups };
+        Mesh mesh { "head_male.obj", Options::Log };
         AssertThat(mesh.NumGroups(), 1);
-        (void)mesh.SaveAs("head_male.saved.obj", Options::LogGroups);
+        (void)mesh.SaveAs("head_male.saved.obj", Options::Log);
     }
 
     TestCase(reload_saved_obj)
@@ -26,14 +26,14 @@ TestImpl(test_mesh_api)
     {
         if (!Mesh::IsFBXSupported())
             return;
-        Mesh mesh { "head_male.fbx", Options::LogGroups };
+        Mesh mesh { "head_male.fbx", Options::Log };
         AssertThat(mesh.NumGroups(), 1);
-        (void)mesh.SaveAs("head_male.saved.fbx", Options::LogGroups);
+        (void)mesh.SaveAs("head_male.saved.fbx", Options::Log);
     }
 
     TestCase(force_single_group)
     {
-        Mesh mesh { "head_male.obj", Options::LogGroups|Options::SingleGroup };
+        Mesh mesh { "head_male.obj", Options::SingleGroup | Options::Log };
         AssertThat(mesh.NumGroups(), 1);
     }
 
@@ -86,9 +86,9 @@ TestImpl(test_mesh_api)
 
     TestCase(validate_load_save_consistency)
     {
-        const Options options = Options::SingleGroup
-                              | Options::LogGroups
-                              | Options::SplitSeams;
+        Options options = Options::SingleGroup
+                        | Options::SplitSeams
+                        | Options::Log;
         Mesh mesh{ "head_male.obj", options };
 
         (void)mesh.SaveAs("head_male.consistency.obj", options);
@@ -116,10 +116,10 @@ TestImpl(test_mesh_api)
 
     TestCase(validate_obj_vertex_order)
     {
-        const Options options = Options::SingleGroup
-                              | Options::LogGroups
-                              | Options::SplitSeams
-                              | Options::Flatten;
+        Options options = Options::SingleGroup
+                        | Options::SplitSeams
+                        | Options::Flatten
+                        | Options::Log;
         Mesh a { "box_4x2x1.obj", options };
         Mesh b { "box_4x2x1.txt", options };
         if (AreMeshesEqual(a, b))
@@ -129,5 +129,18 @@ TestImpl(test_mesh_api)
         
         a[0].PrintVerts("Box.OBJ");
         b[0].PrintVerts("Box.TXT");
+    }
+
+    TestCase(validate_options_unity)
+    {
+        Mesh a { "box_4x2x1.obj", Options::Log };
+        Mesh b { "box_4x2x1.obj", Options::Unity | Options::Log };
+        MeshGroup& ga = a[0];
+        MeshGroup& gb = b[0];
+        AssertThat(ga.Verts[0].x, -gb.Verts[0].x);  // GL --> Unity coordsys
+        AssertThat(ga.Tris[0].b.v, gb.Tris[0].c.v); // CCW --> CW winding  0 1 2 --> 0 2 1
+        AssertThat(ga.Tris[0].c.v, gb.Tris[0].b.v); // CCW --> CW winding  0 1 2 --> 0 2 1
+        AssertNotEqual(ga.NumVerts(), ga.NumCoords()); // optimized mapping
+        AssertThat(gb.NumVerts(), gb.NumCoords()); // per-vertex flattened mapping
     }
 };

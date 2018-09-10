@@ -34,50 +34,46 @@ namespace Nano
             return defaultMat;
         };
 
-        if (file f = file{ materialSavePath, rpp::CREATENEW })
-        {
-            string_buffer sb;
-            auto writeColor = [&](strview id, Color3 color) { sb.writeln(id, color.r, color.g, color.b); };
-            auto writeStr   = [&](strview id, strview str)  { if (str) sb.writeln(id, str); };
-            auto writeFloat = [&](strview id, float value)  { if (value != 1.0f) sb.writeln(id, value); };
-
-            sb.writeln("#", fileName, "MTL library");
-            for (const MeshGroup& group : mesh.Groups)
-            {
-                Material& mat = *(group.Mat ? group.Mat : getDefaultMat()).get();
-                if (rpp::contains(written, &mat))
-                    continue; // skip
-                written.push_back(&mat);
-
-                sb.writeln("newmtl", mat.Name);
-                writeColor("Ka", mat.AmbientColor);
-                writeColor("Kd", mat.DiffuseColor);
-                writeColor("Ks", mat.SpecularColor);
-                if (mat.EmissiveColor.notZero())
-                    writeColor("Ke", mat.EmissiveColor);
-
-                writeFloat("Ns", rpp::clamp(mat.Specular*1000.0f, 0.0f, 1000.0f)); // Ns is [0, 1000]
-                writeFloat("d", mat.Alpha);
-
-                writeStr("map_Kd",   mat.DiffusePath);
-                writeStr("map_d",    mat.AlphaPath);
-                writeStr("map_Ks",   mat.SpecularPath);
-                writeStr("map_bump", mat.NormalPath);
-                writeStr("map_Ke",   mat.EmissivePath);
-
-                sb.writeln("illum 2"); // default smooth shaded rendering
-            }
-
-            if (f.write(sb) == sb.size())
-                return true;
-
-            NanoErr(opt, "File write failed: %s", materialSavePath)
-        }
-        else
-        {
+        file f { materialSavePath, rpp::CREATENEW };
+        if (!f) {
             NanoErr(opt, "Failed to create file: %s", materialSavePath);
         }
-        return false;
+        string_buffer sb;
+        auto writeColor = [&](strview id, Color3 color) { sb.writeln(id, color.r, color.g, color.b); };
+        auto writeStr   = [&](strview id, strview str)  { if (str) sb.writeln(id, str); };
+        auto writeFloat = [&](strview id, float value)  { if (value != 1.0f) sb.writeln(id, value); };
+
+        sb.writeln("#", fileName, "MTL library");
+        for (const MeshGroup& group : mesh.Groups)
+        {
+            Material& mat = *(group.Mat ? group.Mat : getDefaultMat()).get();
+            if (rpp::contains(written, &mat))
+                continue; // skip
+            written.push_back(&mat);
+
+            sb.writeln("newmtl", mat.Name);
+            writeColor("Ka", mat.AmbientColor);
+            writeColor("Kd", mat.DiffuseColor);
+            writeColor("Ks", mat.SpecularColor);
+            if (mat.EmissiveColor.notZero())
+                writeColor("Ke", mat.EmissiveColor);
+
+            writeFloat("Ns", rpp::clamp(mat.Specular*1000.0f, 0.0f, 1000.0f)); // Ns is [0, 1000]
+            writeFloat("d", mat.Alpha);
+
+            writeStr("map_Kd",   mat.DiffusePath);
+            writeStr("map_d",    mat.AlphaPath);
+            writeStr("map_Ks",   mat.SpecularPath);
+            writeStr("map_bump", mat.NormalPath);
+            writeStr("map_Ke",   mat.EmissivePath);
+
+            sb.writeln("illum 2"); // default smooth shaded rendering
+        }
+
+        if (f.write(sb) != sb.size()) {
+            NanoErr(opt, "File write failed: %s", materialSavePath)
+        }
+        return true;
     }
 
     static vector<shared_ptr<Material>> LoadMaterials(strview matlibFile)
@@ -175,7 +171,6 @@ namespace Nano
             parser.reset();
             if (numVerts == 0) {
                 NanoErr(options, "Mesh::LoadOBJ() failed: No vertices in %s\n", meshPath);
-                return false;
             }
 
             // megaBuffer strategy - one big allocation instead of a dozen small ones
@@ -348,7 +343,7 @@ namespace Nano
                 else if (c == 'g')
                 {
                     line.skip(2); // skip "g "
-                    bool ignoreGroup = options.ForceSingleGroup && group;
+                    bool ignoreGroup = (options & Options::SingleGroup) && group;
                     if (!ignoreGroup)
                     {
                         group = &mesh.FindOrCreateGroup(line.next(' '));
@@ -488,7 +483,7 @@ namespace Nano
                 BuildGroup(g, (int)mesh.Groups.size());
 
                 // OBJ default face winding is CCW
-                g.Winding = FaceWindCounterClockWise;
+                g.Winding = FaceWinding::CCW;
             }
 
             if (!mesh.Groups.empty() && mesh.Groups.front().Name.empty())
@@ -504,15 +499,13 @@ namespace Nano
 
         if (!loader.parser) {
             NanoErr(opt, "Failed to open file: %s", meshPath);
-            return false;
         }
 
         if (!loader.ProbeStats()) {
             NanoErr(opt, "Mesh::LoadOBJ() failed! No vertices in: %s", meshPath);
-            return false;
         }
 
-        if (opt.LogMeshGroupInfo) {
+        if (opt & Options::Log) {
             LogInfo("Load %-33s  %5zu verts  %5zu polys",
                 file_nameext(meshPath), loader.numVerts, loader.numFaces);
         }
@@ -529,7 +522,7 @@ namespace Nano
         loader.InitPointers(mem);
         loader.ParseMeshData();
 
-        if (!opt.CreateEmptyGroups)
+        if (!(opt & Options::EmptyGroups))
             loader.RemoveEmptyGroups();
 
         loader.BuildMeshGroups();
@@ -557,91 +550,89 @@ namespace Nano
 
     bool Mesh::SaveAsOBJ(strview meshPath, Options opt) const
     {
-        if (file f { meshPath, rpp::CREATENEW })
-        {
-            string_buffer sb;
-            // straight to file, #dontcare about perf atm
-            if (opt.LogMeshGroupInfo) {
-                LogInfo("Save %-33s  %5d verts  %5d tris", 
-                    file_nameext(meshPath), TotalVerts(), TotalTris());
-            }
-            string matlib = rpp::file_replace_ext(meshPath, "mtl");
-            strview matlibFile = rpp::file_nameext(matlib);
-            if (SaveMaterials(*this, matlib, matlibFile, opt))
-                sb.writeln("mtllib", matlibFile);
-
-            if (!Name.empty())
-                sb.writeln("o", Name);
-
-            int vertexBase  = 1;
-            int coordsBase  = 1;
-            int normalsBase = 1;
-
-            for (int group = 0; group < (int)Groups.size(); ++group)
-            {
-                const MeshGroup& g = Groups[group];
-                if (opt.LogMeshGroupInfo)
-                    g.Print();
-
-                auto* vertsData = g.Verts.data();
-                if (g.Colors.empty())
-                {
-                    for (const Vector3& v : g.Verts)
-                        sb.writef("v %.6f %.6f %.6f\n", v.x, v.y, v.z);
-                }
-                else // non-standard extension for OBJ vertex colors
-                {
-                    // @todo Just leave a warning and export incorrect vertex colors?
-                    Assert((g.ColorMapping == MapPerVertex || g.ColorMapping == MapPerFaceVertex),
-                           "OBJ export only supports per-vertex and per-face-vertex color mapping!");
-                    Assert(g.NumColors() >= g.NumVerts(), "Group %s NumColors does not match NumVerts", g.Name);
-
-                    auto& colors = g.ColorMapping == MapPerFaceVertex ? FlattenColors(g) : g.Colors;
-                    auto* colorsData = colors.data();
-
-                    const int numVerts = g.NumVerts();
-                    for (int i = 0; i < numVerts; ++i)
-                    {
-                        const Vector3& v = vertsData[i];
-                        const Vector3& c = colorsData[i];
-                        if (c == Vector3::Zero()) sb.writef("v %.6f %.6f %.6f\n", v.x, v.y, v.z);
-                        else sb.writef("v %.6f %.6f %.6f %.6f %.6f %.6f\n", v.x, v.y, v.z, c.x, c.y, c.z);
-                    }
-                }
-
-                for (const Vector2& v : g.Coords)  sb.writef("vt %.4f %.4f\n", v.x, v.y);
-                for (const Vector3& v : g.Normals) sb.writef("vn %.4f %.4f %.4f\n", v.x, v.y, v.z);
-
-                if (!g.Name.empty()) sb.writeln("g", g.Name);
-                if (g.Mat)           sb.writeln("usemtl", g.Mat->Name);
-                sb.writeln("s", group);
-                for (const Triangle& face : g.Tris)
-                {
-                    sb.write('f');
-                    for (const VertexDescr& vd : face)
-                    {
-                        sb.write(' '); sb.write(vd.v + vertexBase);
-                        if (vd.t != -1) { sb.write('/'); sb.write(vd.t + coordsBase); }
-                        if (vd.n != -1) { sb.write('/'); sb.write(vd.n + normalsBase); }
-                    }
-                    sb.writeln();
-                }
-
-                vertexBase  += g.NumVerts();
-                coordsBase  += g.NumCoords();
-                normalsBase += g.NumNormals();
-            }
-
-            if (f.write(sb) == sb.size())
-                return true;
-
-            NanoErr(opt, "File write failed: %s", meshPath);
-        }
-        else
-        {
+        file f { meshPath, rpp::CREATENEW };
+        if (!f) {
             NanoErr(opt, "Failed to create file: %s", meshPath);
         }
-        return false;
+
+        string_buffer sb;
+        // straight to file, #dontcare about perf atm
+        if (opt & Options::Log) {
+            LogInfo("Save %-33s  %5d verts  %5d tris", 
+                file_nameext(meshPath), TotalVerts(), TotalTris());
+        }
+        string matlib = rpp::file_replace_ext(meshPath, "mtl");
+        strview matlibFile = rpp::file_nameext(matlib);
+        if (SaveMaterials(*this, matlib, matlibFile, opt))
+            sb.writeln("mtllib", matlibFile);
+
+        if (!Name.empty())
+            sb.writeln("o", Name);
+
+        int vertexBase  = 1;
+        int coordsBase  = 1;
+        int normalsBase = 1;
+
+        for (int group = 0; group < (int)Groups.size(); ++group)
+        {
+            const MeshGroup& g = Groups[group];
+            if (opt & Options::Log) {
+                g.Print();
+            }
+
+            auto* vertsData = g.Verts.data();
+            if (g.Colors.empty())
+            {
+                for (const Vector3& v : g.Verts)
+                    sb.writef("v %.6f %.6f %.6f\n", v.x, v.y, v.z);
+            }
+            else // non-standard extension for OBJ vertex colors
+            {
+                // @todo Just leave a warning and export incorrect vertex colors?
+                Assert((g.ColorMapping == MapPerVertex || g.ColorMapping == MapPerFaceVertex),
+                       "OBJ export only supports per-vertex and per-face-vertex color mapping!");
+                Assert(g.NumColors() >= g.NumVerts(), "Group %s NumColors does not match NumVerts", g.Name);
+
+                auto& colors = g.ColorMapping == MapPerFaceVertex ? FlattenColors(g) : g.Colors;
+                auto* colorsData = colors.data();
+
+                const int numVerts = g.NumVerts();
+                for (int i = 0; i < numVerts; ++i)
+                {
+                    const Vector3& v = vertsData[i];
+                    const Vector3& c = colorsData[i];
+                    if (c == Vector3::Zero()) sb.writef("v %.6f %.6f %.6f\n", v.x, v.y, v.z);
+                    else sb.writef("v %.6f %.6f %.6f %.6f %.6f %.6f\n", v.x, v.y, v.z, c.x, c.y, c.z);
+                }
+            }
+
+            for (const Vector2& v : g.Coords)  sb.writef("vt %.4f %.4f\n", v.x, v.y);
+            for (const Vector3& v : g.Normals) sb.writef("vn %.4f %.4f %.4f\n", v.x, v.y, v.z);
+
+            if (!g.Name.empty()) sb.writeln("g", g.Name);
+            if (g.Mat)           sb.writeln("usemtl", g.Mat->Name);
+            sb.writeln("s", group);
+            for (const Triangle& face : g.Tris)
+            {
+                sb.write('f');
+                for (const VertexDescr& vd : face)
+                {
+                    sb.write(' '); sb.write(vd.v + vertexBase);
+                    if (vd.t != -1) { sb.write('/'); sb.write(vd.t + coordsBase); }
+                    if (vd.n != -1) { sb.write('/'); sb.write(vd.n + normalsBase); }
+                }
+                sb.writeln();
+            }
+
+            vertexBase  += g.NumVerts();
+            coordsBase  += g.NumCoords();
+            normalsBase += g.NumNormals();
+        }
+
+        if (f.write(sb) != sb.size()) {
+            NanoErr(opt, "File write failed: %s", meshPath);
+        }
+        return true;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////

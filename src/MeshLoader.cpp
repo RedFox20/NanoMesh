@@ -7,39 +7,40 @@ using namespace Nano;
 ////////////////////////////////////////////////////////////////////////////////////
 
 NanoMeshGroup::NanoMeshGroup(Mesh& mesh, MeshGroup& group)
-    : GroupId(group.GroupId), Mat{ group.Mat.get() }, Owner{ mesh }, Data{ group }
+    :   GroupId{ group.GroupId   },
+        Mat    { group.Mat.get() },
+        Owner  { mesh            },
+        Group  { group           }
 {
-    Name = Data.Name;
+    Name = Group.Name;
 }
 
 NanoMeshGroup::NanoMeshGroup(Mesh& mesh, int groupId)
-    : GroupId(groupId), Mat{ mesh[groupId].Mat.get() }, Owner{ mesh }, Data{ mesh[groupId] }
+    :   GroupId{ groupId                 }, 
+        Mat    { mesh[groupId].Mat.get() }, 
+        Owner  { mesh                    },
+        Group  { mesh[groupId]           }
 {
-    Name = Data.Name;
+    Name = Group.Name;
     InitVerts();
 }
 
 void NanoMeshGroup::InitVerts()
 {
-    if (Data.IsEmpty())
+    if (Group.IsEmpty())
         return;
 
-    // UNITY HACK:
-    for (Vector3& v : Data.Verts)
-        v.x = -v.x;
-    for (Vector3& n : Data.Normals)
-        n.x = -n.x;
 
-    // UNITY HACK WINDING:
-    Data.CreateIndexArray(IndexData, FaceWindClockWise);
-    Vertices = Data.Verts;
-    Normals  = Data.Normals;
-    Coords   = Data.Coords;
+
+    Group.CreateIndexArray(IndexData);
+    Vertices = Group.Verts;
+    Normals  = Group.Normals;
+    Coords   = Group.Coords;
     Indices  = IndexData;
 
-    Offset   = Data.Offset;
-    Rotation = Data.Rotation;
-    Scale    = Data.Scale;
+    Offset   = Group.Offset;
+    Rotation = Group.Rotation;
+    Scale    = Group.Scale;
 
     if (Vertices.Size == 0 || Indices.Size == 0) {
         LogWarning("WARNING: No mesh data for group %d\n", GroupId);
@@ -47,46 +48,23 @@ void NanoMeshGroup::InitVerts()
     }
 }
 
-void NanoMeshGroup::ConvertCoords(NanoMeshCoordSys coordSys)
-{
-    if (CoordSys != coordSys)
-    {
-        // @todo Implement this
-        CoordSys = coordSys;
-    }
-}
-
 ////////////////////////////////////////////////////////////////////////////////////
 
 NanoMesh::NanoMesh() = default;
 
-static Options ToOptions(const NanoOptions& opt)
+NANOMESH_API void PrintOptions(Nano::Options o)
 {
-    Options o;
-    o.ForceSingleGroup  = opt.ForceSingleGroup  != 0;
-    o.CreateEmptyGroups = opt.CreateEmptyGroups != 0;
-    o.LogMeshGroupInfo  = opt.LogMeshGroupInfo  != 0;
-    o.SplitUVSeams      = opt.SplitUVSeams      != 0;
-    o.PerVertexFlatten  = opt.PerVertexFlatten  != 0;
-    return o;
+    LogInfo("Nano::Options: %s", to_string(o));
 }
 
-NANOMESH_API void PrintOptions(const NanoOptions& o)
-{
-    LogInfo("NanoOptions: %s", to_string(ToOptions(o)));
-}
-
-NanoMesh::NanoMesh(strview path, const NanoOptions& opt)
-    : Data{ path, ToOptions(opt) }
+NanoMesh::NanoMesh(strview path, Nano::Options options)
+    : Data{ path, options }
 {
     Groups.resize(Data.NumGroups());
     Name      = Data.Name;
     NumGroups = Data.NumGroups();
     NumVerts  = Data.TotalVerts();
     NumTris   = Data.TotalTris();
-
-    //string copy = path_combine(folder_path(path), file_name(path) + "_validate.obj");
-    //Data.SaveAsOBJ(copy);
 }
 
 NanoMeshGroup* NanoMesh::GetGroup(int groupId)
@@ -116,10 +94,14 @@ NANOMESH_CAPI const char* NanoGetLastError()
     return NanoError.c_str();
 }
 
-NANOMESH_CAPI NanoMesh* NanoMeshOpen(const char* filename, NanoOptions options)
+NANOMESH_CAPI NanoMesh* NanoMeshOpen(const char* filename, Options options)
 {
     try
     {
+        if (options & Options::Unity) {
+            options |= Options::SingleGroup | Options::SplitSeams
+                    |  Options::Flatten     | Options::ClockWise;
+        }
         auto* mesh = new NanoMesh{ filename, options };
         if (!mesh->Data)
         {
@@ -189,7 +171,7 @@ NANOMESH_CAPI void NanoMeshGroupSetMaterial(
                 float specular, 
                 float alpha)
 {
-    Material& mat = group->Data.CreateMaterial(name);
+    Material& mat = group->Group.CreateMaterial(name);
     mat.MaterialFile  = materialFile;
     mat.DiffusePath   = diffusePath;
     mat.AlphaPath     = alphaPath;

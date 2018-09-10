@@ -1,6 +1,8 @@
 #include <rpp/debugging.h>
 #include <rpp/tests.h>
 #include <Nano/MeshLoader.h>
+using Nano::Mesh;
+using Nano::Options;
 
 TestImpl(test_mesh_loader_api)
 {
@@ -10,16 +12,11 @@ TestImpl(test_mesh_loader_api)
 
     TestCase(basic_load_save)
     {
-        Nano::Mesh mesh { "head_male.obj", 
-            Nano::Options::LogGroups | Nano::Options::SingleGroup  };
+        Mesh mesh { "head_male.obj", Options::SingleGroup | Options::Log };
         AssertThat(mesh.NumGroups(), 1);
 
 
-        NanoOptions opt;
-        opt.ForceSingleGroup = true;
-        opt.SplitUVSeams     = true;
-        opt.PerVertexFlatten = true;
-        opt.LogMeshGroupInfo = true;
+        Options opt = Options::SingleGroup | Options::SplitSeams | Options::Flatten | Options::Log;
         PrintOptions(opt);
 
         NanoMesh* nanoMesh = NanoMeshOpen("head_male.obj", opt);

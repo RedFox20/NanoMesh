@@ -401,13 +401,11 @@ namespace Nano
 
         if (!importer->Initialize(meshPath.to_cstr(), format, SdkManager->GetIOSettings())) {
             NanoErr(opt, "Failed to open file '%s': %s\n", meshPath, importer->GetStatus().GetErrorString());
-            return false;
         }
 
         FbxPtr<FbxScene> scene = FbxScene::Create(SdkManager, "scene");
         if (!importer->Import(scene.get())) {
             NanoErr(opt, "Failed to load FBX '%s': %s\n", meshPath, importer->GetStatus().GetErrorString());
-            return false;
         }
         importer.reset();
 
@@ -571,11 +569,9 @@ namespace Nano
     {
         if (!NumGroups()) {
             NanoErr(opt, "No mesh groups to export to '%s'\n", meshPath);
-            return false;
         }
         if (!TotalTris()) {
             NanoErr(opt, "No faces to export to '%s'\n", meshPath);
-            return false;
         }
 
         InitFbxManager();
@@ -585,11 +581,9 @@ namespace Nano
 
         if (!exporter->Initialize(meshPath.to_cstr(), format, SdkManager->GetIOSettings())) {
             NanoErr(opt, "Failed to open file '%s' for writing: %s\n", meshPath, exporter->GetStatus().GetErrorString());
-            return false;
         }
         if (!exporter->SetFileExportVersion("FBX201400", FbxSceneRenamer::eNone)) {
             NanoErr(opt, "Failed to set FBX export version: %s\n", exporter->GetStatus().GetErrorString());
-            return false;
         }
 
         FbxPtr<FbxScene> scene = FbxScene::Create(SdkManager, "scene");
@@ -630,7 +624,6 @@ namespace Nano
 
         if (!exporter->Export(scene.get())) {
             NanoErr(opt, "Failed to export FBX '%s': %s\n", meshPath, exporter->GetStatus().GetErrorString());
-            return false;
         }
         return true;
     }
@@ -644,12 +637,10 @@ namespace Nano
     bool Mesh::LoadFBX(strview meshPath, Options opt)
     {
         NanoErr(opt, "FBX not supported in this build!\n%s", meshPath);
-        return false;
     }
     bool Mesh::SaveAsFBX(strview meshPath, Options opt) const
     {
         NanoErr(opt, "FBX not supported in this build!\n%s", meshPath);
-        return false;
     }
 }
 #endif
