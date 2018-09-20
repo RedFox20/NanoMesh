@@ -496,8 +496,8 @@ namespace Nano
         }
 
         if (opt & Options::Log) {
-            LogInfo("Load %-33s  %5zu verts  %5zu polys",
-                file_nameext(meshPath), loader.numVerts, loader.numFaces);
+            LogInfo("Load %-33s  %5zu verts  %5zu polys  %s",
+                file_nameext(meshPath), loader.numVerts, loader.numFaces, to_string(opt));
         }
         
         // OBJ maps vertex data globally, not per-mesh-group like most game engines expect

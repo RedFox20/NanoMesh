@@ -412,8 +412,9 @@ namespace Nano
         if (FbxNode* root = scene->GetRootNode())
         {
             Name = file_name(meshPath);
-            if (opt & Options::Log)
-                LogInfo("Load %-20s", file_nameext(meshPath));
+            if (opt & Options::Log) {
+                LogInfo("Load %-20s  %s", file_nameext(meshPath), to_string(opt));
+            }
 
             // @note ConvertScene only affects the global/local matrices, it doesn't modify the vertices themselves
             FbxAxisSystem sceneAxisSys = scene->GetGlobalSettings().GetAxisSystem();
