@@ -434,7 +434,7 @@ namespace Nano
             if (g.Tris.empty())
                 return;
 
-            rpp::Timer t;
+            //rpp::Timer t;
             // if total number of groups is 1, then we don't need anything
             // complicated, just copy all the data and we're done
             if (numGroups == 1)
@@ -463,7 +463,7 @@ namespace Nano
             else if (numCoords >  numVerts)  g.CoordsMapping  = MapPerFaceVertex;
             else Assert(false, "Unfamiliar CoordsMapping mode");
 
-            LogInfo("BuildGroup %s elapsed: %.1fms", g.Name, t.elapsed_ms());
+            //LogInfo("BuildGroup %s elapsed: %.1fms", g.Name, t.elapsed_ms());
         }
 
         void BuildMeshGroups() const

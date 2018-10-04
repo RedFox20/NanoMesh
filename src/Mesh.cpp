@@ -644,7 +644,7 @@ namespace Nano
 
     bool Mesh::Load(strview meshPath, Options opt)
     {
-        rpp::ScopedPerfTimer perf{ "Nano::Mesh::Load" };
+        //rpp::ScopedPerfTimer perf{ "Nano::Mesh::Load" };
 
         if (opt & Options::Unity) {
             opt |= Options::SingleGroup | Options::SplitSeams
@@ -690,7 +690,8 @@ namespace Nano
 
     bool Mesh::SaveAs(strview meshPath, Options opt) const
     {
-        rpp::ScopedPerfTimer perf{ "Nano::Mesh::SaveAs" };
+        //rpp::ScopedPerfTimer perf{ "Nano::Mesh::SaveAs" };
+        
         strview ext = file_ext(meshPath);
         if (ext.equalsi("fbx"_sv)) return SaveAsFBX(meshPath, opt);
         if (ext.equalsi("obj"_sv)) return SaveAsOBJ(meshPath, opt);
