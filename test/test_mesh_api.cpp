@@ -37,18 +37,18 @@ TestImpl(test_mesh_api)
         AssertThat(mesh.NumGroups(), 1);
     }
 
-    static bool AreEqual(const rpp::Vector3& a, const rpp::Vector3& b) {
+    bool AreEqual(const rpp::Vector3& a, const rpp::Vector3& b) {
         return a.almostEqual(b);
     }
-    static bool AreEqual(const rpp::Vector2& a, const rpp::Vector2& b) {
+    bool AreEqual(const rpp::Vector2& a, const rpp::Vector2& b) {
         return a.almostEqual(b);
     }
-    static bool AreEqual(const Nano::Triangle& a, const Nano::Triangle& b) {
+    bool AreEqual(const Nano::Triangle& a, const Nano::Triangle& b) {
         return a == b;
     }
 
     template<class T>
-    static bool CompareArrays(const std::vector<T>& a, 
+    bool CompareArrays(const std::vector<T>& a, 
                               const std::vector<T>& b,
                               const char* what)
     {
@@ -68,7 +68,7 @@ TestImpl(test_mesh_api)
         return true;
     }
 
-    static bool AreMeshesEqual(const Mesh& a, const Mesh& b)
+    bool AreMeshesEqual(const Mesh& a, const Mesh& b)
     {
         if (!AssertThat(a.NumGroups(), b.NumGroups()))
             return false;
@@ -100,7 +100,7 @@ TestImpl(test_mesh_api)
             LogWarning("Saved mesh is not consistent with original mesh!");
     }
 
-    static bool AreVerticesEqual(const Mesh& a, const Mesh& b)
+    bool AreVerticesEqual(const Mesh& a, const Mesh& b)
     {
         if (!AssertThat(a.NumGroups(), b.NumGroups()))
             return false;
