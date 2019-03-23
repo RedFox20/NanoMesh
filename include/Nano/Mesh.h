@@ -74,7 +74,6 @@ namespace Nano
     struct NANOMESH_API Material
     {
         string Name; // name of the material instance
-        string MaterialFile; // eg 'default.mtl'
 
         string DiffusePath;
         string AlphaPath;

@@ -34,7 +34,6 @@ struct NANOMESH_API NanoMaterial
         if (!mat) return;
         const Nano::Material& m = *mat;
         Name          = m.Name;
-        MaterialFile  = m.MaterialFile;
         DiffusePath   = m.DiffusePath;
         AlphaPath     = m.AlphaPath;
         SpecularPath  = m.SpecularPath;

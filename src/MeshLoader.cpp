@@ -170,7 +170,6 @@ NANOMESH_CAPI void NanoMeshGroupSetMaterial(
                 float alpha)
 {
     Material& mat = group->Group.CreateMaterial(name);
-    mat.MaterialFile  = materialFile;
     mat.DiffusePath   = diffusePath;
     mat.AlphaPath     = alphaPath;
     mat.SpecularPath  = specularPath;

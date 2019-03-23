@@ -92,8 +92,7 @@ namespace Nano
                 {
                     materials.push_back(make_shared<Material>());
                     mat = materials.back().get();
-                    mat->Name         = line.trim();
-                    mat->MaterialFile = matlibFile;
+                    mat->Name = line.trim();
                 }
                 else if (mat)
                 {
