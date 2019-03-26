@@ -2,6 +2,7 @@
 #include <rpp/vec.h>
 #include <rpp/collections.h>
 #include <memory>
+#include <fbxsdk/scene/constraint/fbxconstraintutils.h>
 
 /**
  * Enables FBX mesh loader for platforms that support it
@@ -32,6 +33,8 @@ namespace Nano
     using rpp::strview;
     using rpp::Vector2;
     using rpp::Vector3;
+    using rpp::Vector4;
+    using rpp::Matrix4;
     using rpp::Color3;
     using rpp::BoundingBox;
     using rpp::IdVector3;
@@ -93,7 +96,7 @@ namespace Nano
 
     enum MapMode
     {
-        // this meshgroup element is not mapped
+        // this mesh group element is not mapped
         MapNone,
 
         // extra data is mapped per vertex, this means:
@@ -179,6 +182,40 @@ namespace Nano
         bool operator!=(const WeightId& v) const { return ID != v.ID; }
     };
 
+    struct NANOMESH_API BonePose
+    {
+        Vector3 Translation;
+        Vector3 Rotation; // @note XYZ Rotation in DEGREES
+        Vector3 Scale;
+    };
+
+    struct NANOMESH_API MeshBone
+    {
+        int BoneIndex;   // this index in the Bones array
+        int ParentIndex; // parent bone index in the Bones array
+        string Name;
+        BonePose Pose;
+    };
+
+    struct NANOMESH_API SkinnedBone
+    {
+        int BoneIndex;   // this index in the SkinnedBones array
+        int ParentIndex; // parent bone index in the SkinnedBones array
+        string Name;
+        BonePose Pose;
+    };
+
+    // Up to 4 bone indices per vertex
+    struct NANOMESH_API BlendIndices
+    {
+        unsigned char indices[4];
+    };
+
+    // Maps up to 4 bone weights per vertex
+    struct NANOMESH_API BlendWeights
+    {
+        Vector4 weights;
+    };
 
     struct NANOMESH_API MeshGroup
     {
@@ -186,21 +223,25 @@ namespace Nano
         string Name; // name of the suboject
         shared_ptr<Material> Mat;
 
-        Vector3 Offset = Vector3::Zero();
+        Vector3 Offset   = Vector3::Zero();
         Vector3 Rotation = Vector3::Zero(); // XYZ Euler DEGREES
-        Vector3 Scale = Vector3::One();
+        Vector3 Scale    = Vector3::One();
 
         // we treat mesh data as 'layers', so everything except Verts is optional
         vector<Vector3> Verts;
         vector<Vector2> Coords;
         vector<Vector3> Normals;
         vector<Color3>  Colors;
+        vector<Vector4> Weights;
+        vector<BlendIndices> BlendIndices;
+        vector<BlendWeights> BlendWeights;
 
         vector<Triangle> Tris; // face descriptors (tris and/or quads)
 
         MapMode CoordsMapping  = MapNone;
         MapMode NormalsMapping = MapNone;
         MapMode ColorMapping   = MapNone;
+        MapMode BlendMapping   = MapNone; // Only Per-Vertex supported
 
         FaceWinding   Winding  = FaceWinding::CW;
         CoordSys      System   = CoordSys::GL;
@@ -441,7 +482,9 @@ namespace Nano
         // These are intentionally public to allow custom mesh manipulation
         string Name;
         vector<MeshGroup> Groups;
-        
+        vector<MeshBone> Bones; // all bones
+        vector<SkinnedBone> SkinnedBones; // only animated/skinned bones
+
         // Default empty mesh
         Mesh();
         

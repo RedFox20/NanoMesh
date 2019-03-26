@@ -139,7 +139,7 @@ namespace Nano
             (double)v.y 
         };
     }
-    static FINLINE FbxDouble3 ToDouble3(Vector3 v)
+    static FINLINE FbxDouble3 ToFbxColor3(Vector3 v)
     {
         return { (double)v.x, (double)v.y, (double)v.z };
     }
@@ -394,9 +394,38 @@ namespace Nano
         }
     }
 
-    bool Mesh::IsFBXSupported() noexcept { return true; }
+    static void RecurseSkeleton(Mesh& mesh, FbxNode* node, int parentIndex, int& boneIndex)
+    {
+        for (int i = node->GetChildCount() - 1; i >= 0; --i)
+        {
+            FbxNode* child = node->GetChild(i);
+            MeshBone& bone = rpp::emplace_back(mesh.Bones);
+            bone.BoneIndex = boneIndex;
+            bone.ParentIndex = parentIndex;
+            if (auto* name = child->GetName())
+                bone.Name = name;
+            FbxDouble3 offset = node->LclTranslation.Get();
+            FbxDouble3 rot    = node->LclRotation.Get();   // @note Euler XYZ Degrees
+            FbxDouble3 scale  = node->LclScaling.Get();
+            bone.Pose.Translation = FbxToOpenGL(offset);
+            bone.Pose.Rotation    = FbxToOpenGL(rot);
+            bone.Pose.Scale       = FbxToOpenGL(scale);
+            ++boneIndex;
+            RecurseSkeleton(mesh, child, boneIndex, boneIndex);
+        }
+    }
+    static void CreateSkeleton(Mesh& mesh, FbxNode* root)
+    {
+        int boneIndex = 0;
+        RecurseSkeleton(mesh, root, -1, boneIndex);
+    }
 
-    static void SetTransform(MeshGroup& group, FbxNode* node)
+    static void LoadAnimation(MeshGroup& meshGroup)
+    {
+        
+    }
+
+    static void SetTransformGL(MeshGroup& group, FbxNode* node)
     {
         FbxDouble3 offset = node->LclTranslation.Get();
         FbxDouble3 rot    = node->LclRotation.Get();   // @note Euler XYZ Degrees
@@ -405,6 +434,8 @@ namespace Nano
         group.Rotation = FbxToOpenGL(rot);
         group.Scale    = FbxToOpenGL(scale);
     }
+    
+    bool Mesh::IsFBXSupported() noexcept { return true; }
 
     bool Mesh::LoadFBX(strview meshPath, Options opt)
     {
@@ -437,14 +468,15 @@ namespace Nano
             //    LogWarning("Invalid AxisSystem! Please Re-Export the FBX in OpenGL Axis System");
 
             int numChildren = root->GetChildCount();
-
             for (int childIndex = 0; childIndex < numChildren; ++childIndex)
             {
                 FbxNode* child = root->GetChild(childIndex);
+                FbxNodeAttribute* attribute = child->GetNodeAttribute();
+ 
                 if (FbxMesh* mesh = child->GetMesh())
                 {
                     MeshGroup& group = CreateGroup(child->GetName());
-                    SetTransform(group, child);
+                    SetTransformGL(group, child);
 
                     vector<int> oldIndices;
                     LoadVerticesAndFaces(group, mesh, oldIndices);
@@ -452,12 +484,19 @@ namespace Nano
                     if (auto* uvs     = mesh->GetElementUV())          LoadCoords(group,  uvs,     oldIndices);
                     if (auto* colors  = mesh->GetElementVertexColor()) LoadColors(group,  colors,  oldIndices);
                 }
+                else if (attribute && attribute->GetAttributeType() == FbxNodeAttribute::eSkeleton)
+                {
+                    continue; // ignore skeleton nodes at this point
+                }
                 else if (opt & Options::EmptyGroups)
                 {
                     MeshGroup& group = CreateGroup(child->GetName());
-                    SetTransform(group, child);
+                    SetTransformGL(group, child);
                 }
             }
+
+            CreateSkeleton(*this, root);
+
             ApplyLoadOptions(opt);
             return true;
         }
@@ -610,13 +649,13 @@ namespace Nano
                 Material& m = *g.Mat;
                 FbxSurfacePhong* mat = FbxSurfacePhong::Create(scene, m.Name.data());
                 materials[&m] = mat;
-                mat->Ambient.Set(ToDouble3(m.AmbientColor));
-                mat->Diffuse.Set(ToDouble3(m.DiffuseColor));
-                mat->Specular.Set(ToDouble3(m.SpecularColor));
+                mat->Ambient.Set(ToFbxColor3(m.AmbientColor));
+                mat->Diffuse.Set(ToFbxColor3(m.DiffuseColor));
+                mat->Specular.Set(ToFbxColor3(m.SpecularColor));
                 mat->SpecularFactor.Set((double)m.Specular);
                 mat->TransparencyFactor.Set((double)m.Alpha);
                 if (!m.EmissiveColor.almostEqual(Color3::Black()))
-                    mat->Emissive.Set(ToDouble3(m.EmissiveColor));
+                    mat->Emissive.Set(ToFbxColor3(m.EmissiveColor));
 
                 if (auto* diffuse = NewTexture(scene, m.DiffusePath, "Diffuse Texture"))
                     mat->Diffuse.ConnectSrcObject(diffuse);
@@ -633,6 +672,32 @@ namespace Nano
             }
         }
         return materials;
+    }
+
+    static void WriteSkeleton(const Mesh& mesh, FbxScene* scene, FbxNode* root)
+    {
+        size_t count = mesh.Bones.size();
+        if (count == 0)
+            return;
+
+        vector<FbxNode*> skeleton(count);
+        for (size_t i = 0; i < count; ++i)
+        {
+            const MeshBone& bone = mesh.Bones[i];
+            bool isRoot = bone.ParentIndex < 0;
+            FbxNode* parentBone = isRoot ? root : skeleton[bone.ParentIndex];
+
+            FbxNode* thisBone = FbxNode::Create(scene, bone.Name.c_str());
+            skeleton[i] = thisBone;
+            FbxSkeleton* fbxSkeleton = FbxSkeleton::Create(scene, bone.Name.c_str());
+            fbxSkeleton->SetSkeletonType(isRoot ? FbxSkeleton::eRoot : FbxSkeleton::eLimbNode);
+            
+            thisBone->LclTranslation.Set(GLToFbxDouble3(bone.Pose.Translation));
+            thisBone->LclRotation.Set(GLToFbxDouble3(bone.Pose.Rotation));
+            thisBone->LclScaling.Set(GLToFbxDouble3(bone.Pose.Scale));
+            thisBone->SetNodeAttribute(fbxSkeleton);
+            parentBone->AddChild(thisBone);
+        }
     }
 
     bool Mesh::SaveAsFBX(strview meshPath, Options opt) const
@@ -653,7 +718,6 @@ namespace Nano
 
         //int format = SdkManager->GetIOPluginRegistry()->FindWriterIDByDescription("FBX 6.0 binary (*.fbx)");
         int format = -1;
-
         if (!exporter->Initialize(meshPath.to_cstr(), format, IOSettings)) {
             NanoErr(opt, "Failed to open file '%s' for writing: %s\n", meshPath, exporter->GetStatus().GetErrorString());
         }
@@ -705,6 +769,7 @@ namespace Nano
                 node->SetNodeAttribute(mesh);
                 root->AddChild(node);
             }
+            WriteSkeleton(*this, scene.get(), root);
         }
 
         if (!exporter->Export(scene.get())) {
