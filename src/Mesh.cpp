@@ -91,6 +91,22 @@ namespace Nano
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
+    void MeshGroup::Clear()
+    {
+        Verts.clear();
+        Coords.clear();
+        Normals.clear();
+        Colors.clear();
+        Weights.clear();
+        BlendIndices.clear();
+        BlendWeights.clear();
+        Tris.clear();
+        CoordsMapping = MapNone;
+        NormalsMapping = MapNone;
+        ColorMapping = MapNone;
+        BlendMapping = MapNone;
+    }
+
     Material& MeshGroup::CreateMaterial(string name)
     {
         Mat = make_shared<Material>();
@@ -450,10 +466,20 @@ namespace Nano
     {
         CreateIndexArray(indices, Winding);
     }
+    
+    void MeshGroup::CreateIndexArray(vector<short>& indices) const noexcept
+    {
+        CreateIndexArray(indices, Winding);
+    }
 
     void MeshGroup::CreateIndexArray(vector<unsigned>& indices) const noexcept
     {
         CreateIndexArray(reinterpret_cast<vector<int>&>(indices), Winding);
+    }
+
+    void MeshGroup::CreateIndexArray(vector<unsigned short>& indices) const noexcept
+    {
+        CreateIndexArray(reinterpret_cast<vector<short>&>(indices), Winding);
     }
 
     void MeshGroup::CreateIndexArray(vector<int>& indices, FaceWinding winding) const noexcept
@@ -474,6 +500,28 @@ namespace Nano
                 indices.push_back(face.a.v);
                 indices.push_back(face.c.v);
                 indices.push_back(face.b.v);
+            }
+        }
+    }
+
+    void MeshGroup::CreateIndexArray(vector<short>& indices, FaceWinding winding) const noexcept
+    {
+        indices.clear();
+        indices.reserve(Tris.size() * 3u);
+        if (Winding == winding)
+        {
+            for (const Triangle& face : Tris) {
+                indices.push_back((short)face.a.v);
+                indices.push_back((short)face.b.v);
+                indices.push_back((short)face.c.v);
+            }
+        }
+        else // flip the winding, 0 1 2 --> 0 2 1
+        {
+            for (const Triangle& face : Tris) {
+                indices.push_back((short)face.a.v);
+                indices.push_back((short)face.c.v);
+                indices.push_back((short)face.b.v);
             }
         }
     }

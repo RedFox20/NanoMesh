@@ -255,14 +255,20 @@ namespace Nano
         int NumCoords()  const { return (int)Coords.size(); }
         int NumNormals() const { return (int)Normals.size(); }
         int NumColors()  const { return (int)Colors.size(); }
-        Vector3* VertexData() { return Verts.data(); }
-        Vector2* CoordData() { return Coords.data(); }
+        int NumBlendIndices() const { return (int)BlendIndices.size(); }
+        int NumBlendWeights() const { return (int)BlendWeights.size(); }
+        Vector3* VertexData() { return Verts.data();   }
+        Vector2* CoordData()  { return Coords.data();  }
         Vector3* NormalData() { return Normals.data(); }
-        Color3*  ColorData() { return Colors.data(); }
+        Color3*  ColorData()  { return Colors.data();  }
+        Nano::BlendIndices*  BlendIndexData()  { return BlendIndices.data(); }
+        Nano::BlendWeights*  BlendWeightData() { return BlendWeights.data(); }
         const Vector3* VertexData() const { return Verts.data(); }
         const Vector2* CoordData()  const { return Coords.data(); }
         const Vector3* NormalData() const { return Normals.data(); }
         const Color3*  ColorData()  const { return Colors.data(); }
+        const Nano::BlendIndices*  BlendIndexData()  const { return BlendIndices.data(); }
+        const Nano::BlendWeights*  BlendWeightData() const { return BlendWeights.data(); }
 
         const Vector3& Vertex(int vertexId)          const { return Verts.data()[vertexId]; }
         const Vector3& Vertex(const VertexDescr& vd) const { return Verts.data()[vd.v]; }
@@ -271,6 +277,9 @@ namespace Nano
         const Triangle* end()   const { return &Tris.back() + 1; }
         Triangle* begin() { return &Tris.front(); }
         Triangle* end() { return &Tris.back() + 1; }
+
+        // this clears all layers and resets mapping modes
+        void Clear();
 
         // creates and assigns a new material to this mesh group
         Material& CreateMaterial(string name);
@@ -336,9 +345,12 @@ namespace Nano
         void OptimizedFlatten() noexcept;
 
         void CreateIndexArray(vector<int>& indices) const noexcept;
+        void CreateIndexArray(vector<short>& indices) const noexcept;
         void CreateIndexArray(vector<unsigned int>& indices) const noexcept;
+        void CreateIndexArray(vector<unsigned short>& indices) const noexcept;
 
         void CreateIndexArray(vector<int>& indices, FaceWinding winding) const noexcept;
+        void CreateIndexArray(vector<short>& indices, FaceWinding winding) const noexcept;
 
         // Pick the closest face that intersects with the ray
         PickedTriangle PickTriangle(const Ray& ray) const noexcept;
