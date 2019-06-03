@@ -28,6 +28,7 @@ namespace Nano
 {
     using std::string;
     using std::vector;
+    using std::unordered_map;
     using std::shared_ptr;
 
     using rpp::strview;
@@ -191,18 +192,38 @@ namespace Nano
 
     struct NANOMESH_API MeshBone
     {
-        int BoneIndex;   // this index in the Bones array
-        int ParentIndex; // parent bone index in the Bones array
+        int BoneIndex   = 0; // this index in the Bones array
+        int ParentIndex = 0; // parent bone index in the Bones array
         string Name;
         BonePose Pose;
     };
 
     struct NANOMESH_API SkinnedBone
     {
-        int BoneIndex;   // this index in the SkinnedBones array
-        int ParentIndex; // parent bone index in the SkinnedBones array
+        int BoneIndex   = 0; // this index in the SkinnedBones array
+        int ParentIndex = 0; // parent bone index in the SkinnedBones array
         string Name;
         BonePose Pose;
+        Matrix4 InverseBindPoseTransform; // TODO
+    };
+
+    struct NANOMESH_API AnimationKeyFrame
+    {
+        float Time; // time in seconds for this keyframe
+        BonePose Pose; // pose of the bone at time
+    };
+
+    struct NANOMESH_API BoneAnimation
+    {
+        int SkinnedBoneIndex = 0; // index of SkinnedBone
+        vector<AnimationKeyFrame> Frames; // animation keyframes for this bone
+    };
+
+    struct NANOMESH_API AnimationClip
+    {
+        string Name; // unique name identifier of this animation clip
+        float Duration = 0; // duration of this animation clip
+        vector<BoneAnimation> Animations; // list of bone animations
     };
 
     // Up to 4 bone indices per vertex
@@ -496,6 +517,7 @@ namespace Nano
         vector<MeshGroup> Groups;
         vector<MeshBone> Bones; // all bones
         vector<SkinnedBone> SkinnedBones; // only animated/skinned bones
+        unordered_map<string, AnimationClip> AnimationClips; // all animation clips, by name
 
         // Default empty mesh
         Mesh();
@@ -540,9 +562,10 @@ namespace Nano
         const MeshGroup& operator[](int index) const { return Groups[index]; }
 
 
-        Mesh(Mesh&& o) noexcept = default; // Allow MOVE
-        Mesh(const Mesh&) noexcept = delete; // NOCOPY, call Clone() manually plz
+        Mesh(Mesh&& o) = default; // Allow MOVE
         Mesh& operator=(Mesh&& o) = default;
+
+        Mesh(const Mesh&) noexcept = delete; // NOCOPY, call Clone() manually plz
         Mesh& operator=(const Mesh&) noexcept = delete;
 
 
@@ -551,7 +574,7 @@ namespace Nano
 
         // Create a clone of this 3D Mesh on demand. No automatic copy operators allowed.
         // @param cloneMaterials Will also clone the material references
-        Mesh Clone(const bool cloneMaterials = false) const noexcept;
+        Mesh Clone(bool cloneMaterials = false) const noexcept;
 
         /**
          * Attempts to load this mesh.

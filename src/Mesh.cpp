@@ -677,11 +677,11 @@ namespace Nano
         Groups.clear();
     }
 
-    Mesh Mesh::Clone(const bool cloneMaterials) const noexcept
+    Mesh Mesh::Clone(bool cloneMaterials) const noexcept
     {
         Mesh obj;
-        obj.Name     = Name;
-        obj.Groups   = Groups;
+        obj.Name   = Name;
+        obj.Groups = Groups;
         if (cloneMaterials) {
             for (auto& group : obj.Groups)
                 if (group.Mat)
