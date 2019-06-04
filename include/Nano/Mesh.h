@@ -2,7 +2,6 @@
 #include <rpp/vec.h>
 #include <rpp/collections.h>
 #include <memory>
-#include <fbxsdk/scene/constraint/fbxconstraintutils.h>
 
 /**
  * Enables FBX mesh loader for platforms that support it
