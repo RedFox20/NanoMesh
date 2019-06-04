@@ -253,8 +253,8 @@ namespace Nano
         vector<Vector3> Normals;
         vector<Color3>  Colors;
         vector<Vector4> Weights;
-        vector<BlendIndices> BlendIndices;
-        vector<BlendWeights> BlendWeights;
+        vector<Nano::BlendIndices> BlendIndices;
+        vector<Nano::BlendWeights> BlendWeights;
 
         vector<Triangle> Tris; // face descriptors (tris and/or quads)
 
