@@ -10,7 +10,7 @@ jobs:
       - run: make configure-cmake
       - run: sudo python3.6 -m pip install mama
       - run: curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
-      - run: sudo apt -y install libdw-dev gdb git-lfs
+      - run: sudo apt -y --allow-unauthenticated install libdw-dev gdb git-lfs
       - run: git lfs pull
       # always build with testing
       - run: mama clang build test

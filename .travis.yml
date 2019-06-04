@@ -9,7 +9,6 @@ matrix:
           packages:
             - libdw-dev
             - gdb
-            - git-lfs
       env:
         - COMPILER=clang
     - os: linux
@@ -21,7 +20,6 @@ matrix:
           packages:
             - libdw-dev
             - gdb
-            - git-lfs
       env:
         - COMPILER=gcc
 

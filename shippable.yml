@@ -1,12 +1,13 @@
 language: python
+python:
+  - 3.7
 build:
   ci:
-    - sudo apt -y install python3.6
-    - make configure-pip
+    - make configure-pip37
     - make configure-cmake
     - make configure-clang6-1604
     - pip3 install mama --upgrade
     #- curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
-    - sudo apt -y install libdw-dev gdb git-lfs
+    - sudo apt -y --allow-unauthenticated install libdw-dev gdb git-lfs
     - git lfs pull
     - mama build clang test

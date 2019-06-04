@@ -14,8 +14,12 @@ configure-clang-travis: configure-clang6-1404
 configure-gcc-travis: configure-gcc-7
 
 
+configure-gcc-8:
+	sudo apt -y --force-yes --allow-unauthenticated --fix-missing install g++-8
+	sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 100 --slave /usr/bin/g++ g++ /usr/bin/g++-8
+	sudo update-alternatives --set gcc /usr/bin/gcc-8
 configure-gcc-7:
-	sudo apt -y --force-yes install g++-7
+	sudo apt -y --force-yes --allow-unauthenticated --fix-missing install g++-7
 	sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 100 --slave /usr/bin/g++ g++ /usr/bin/g++-7
 	sudo update-alternatives --set gcc /usr/bin/gcc-7
 
@@ -44,10 +48,16 @@ configure-clang6-1404: download-clang6-1404 install-clang6
 
 
 /opt/pip: configure-pip
-configure-pip:
+configure-pip: configure-pip36
+configure-pip37:
+	sudo mkdir -p /opt/pip
+	sudo wget https://bootstrap.pypa.io/get-pip.py -P /opt/pip
+	sudo python3.7 /opt/pip/get-pip.py
+configure-pip36:
 	sudo mkdir -p /opt/pip
 	sudo wget https://bootstrap.pypa.io/get-pip.py -P /opt/pip
 	sudo python3.6 /opt/pip/get-pip.py
+
 
 /opt/cmake: configure-cmake
 configure-cmake:
