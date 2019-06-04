@@ -1,10 +1,6 @@
 import mama
 class NanoMesh(mama.BuildTarget):
 
-    # global workspace is used for sharing intermediate build
-    # products between multiple projects
-    global_workspace = 'mama_wolf3d'
-
     def enable_fbxsdk(self):
         return not ('NO_FBX' in self.args) and self.windows
 
