@@ -682,6 +682,9 @@ namespace Nano
         Mesh obj;
         obj.Name   = Name;
         obj.Groups = Groups;
+        obj.Bones = Bones;
+        obj.SkinnedBones = SkinnedBones;
+        obj.AnimationClips = AnimationClips;
         if (cloneMaterials) {
             for (auto& group : obj.Groups)
                 if (group.Mat)

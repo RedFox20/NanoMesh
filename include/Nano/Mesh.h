@@ -194,7 +194,7 @@ namespace Nano
         int BoneIndex   = 0; // this index in the Bones array
         int ParentIndex = 0; // parent bone index in the Bones array
         string Name;
-        BonePose Pose;
+        BonePose Pose {};
     };
 
     struct NANOMESH_API SkinnedBone
@@ -202,7 +202,7 @@ namespace Nano
         int BoneIndex   = 0; // this index in the SkinnedBones array
         int ParentIndex = 0; // parent bone index in the SkinnedBones array
         string Name;
-        BonePose Pose;
+        BonePose Pose {};
         Matrix4 InverseBindPoseTransform; // TODO
     };
 
