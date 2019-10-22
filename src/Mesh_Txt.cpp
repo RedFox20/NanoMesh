@@ -110,14 +110,14 @@ namespace Nano
         int numCoords  = g.NumCoords();
         int numTris    = g.NumTris();
 
-        if      (numNormals <= 0)        g.NormalsMapping = MapNone;
-        else if (numNormals == numVerts) g.NormalsMapping = MapPerVertex;
-        else if (numNormals == numTris)  g.NormalsMapping = MapPerFace;
-        else if (numNormals >  numVerts) g.NormalsMapping = MapPerFaceVertex;
-        else                             g.NormalsMapping = MapSharedElements;
-        if      (numCoords == 0)         g.CoordsMapping  = MapNone;
-        else if (numCoords == numVerts)  g.CoordsMapping  = MapPerVertex;
-        else if (numCoords >  numVerts)  g.CoordsMapping  = MapPerFaceVertex;
+        if      (numNormals <= 0)        g.NormalsMapping = MapMode::None;
+        else if (numNormals == numVerts) g.NormalsMapping = MapMode::PerVertex;
+        else if (numNormals == numTris)  g.NormalsMapping = MapMode::PerFace;
+        else if (numNormals >  numVerts) g.NormalsMapping = MapMode::PerFaceVertex;
+        else                             g.NormalsMapping = MapMode::SharedElements;
+        if      (numCoords == 0)         g.CoordsMapping  = MapMode::None;
+        else if (numCoords == numVerts)  g.CoordsMapping  = MapMode::PerVertex;
+        else if (numCoords >  numVerts)  g.CoordsMapping  = MapMode::PerFaceVertex;
         else Assert(false, "Unfamiliar CoordsMapping mode");
     }
 

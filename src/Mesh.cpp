@@ -101,10 +101,10 @@ namespace Nano
         BlendIndices.clear();
         BlendWeights.clear();
         Tris.clear();
-        CoordsMapping = MapNone;
-        NormalsMapping = MapNone;
-        ColorMapping = MapNone;
-        BlendMapping = MapNone;
+        CoordsMapping = MapMode::None;
+        NormalsMapping = MapMode::None;
+        ColorMapping = MapMode::None;
+        BlendMapping = MapMode::None;
     }
 
     Material& MeshGroup::CreateMaterial(string name)
@@ -214,7 +214,7 @@ namespace Nano
     Vector3 MeshGroup::GetNormalForSelection(const vector<WeightId>& selection) const noexcept
     {
         Vector3 normal = Vector3::Zero();
-        if (selection.empty() || NormalsMapping != MapPerVertex)
+        if (selection.empty() || NormalsMapping != MapMode::PerVertex)
             return normal;
 
         const Vector3* normals = NormalData();
@@ -273,9 +273,9 @@ namespace Nano
         Coords  = move(coords);
         Normals = move(normals);
         Colors  = move(colors);
-        CoordsMapping  = Coords.empty()  ? MapNone : MapPerFaceVertex;
-        NormalsMapping = Normals.empty() ? MapNone : MapPerFaceVertex;
-        ColorMapping   = Colors.empty()  ? MapNone : MapPerFaceVertex;
+        CoordsMapping  = Coords.empty()  ? MapMode::None : MapMode::PerFaceVertex;
+        NormalsMapping = Normals.empty() ? MapMode::None : MapMode::PerFaceVertex;
+        ColorMapping   = Colors.empty()  ? MapMode::None : MapMode::PerFaceVertex;
     }
 
     void MeshGroup::SetVertexColor(int vertexId, const Color3& vertexColor) noexcept
@@ -284,7 +284,7 @@ namespace Nano
 
         if (Colors.empty()) {
             Colors.resize(Verts.size());
-            ColorMapping = MapPerVertex;
+            ColorMapping = MapMode::PerVertex;
         }
         Colors[vertexId] = vertexColor;
     }
@@ -315,7 +315,7 @@ namespace Nano
                 Colors.resize(size_t(numVertsOld));
                 append(Colors, group.Colors);
             }
-            ColorMapping = MapPerVertex;
+            ColorMapping = MapMode::PerVertex;
         }
 
         rpp::append(Tris, group.Tris);
@@ -439,18 +439,18 @@ namespace Nano
             }
         }
 
-        if (CoordsMapping) {
-            CoordsMapping = MapPerVertex;
+        if (CoordsMapping != MapMode::None) {
+            CoordsMapping = MapMode::PerVertex;
             Coords = move(coords);
             Assert(Coords.size()  == Verts.size(), "Coords must match vertices");
         }
-        if (NormalsMapping) {
-            NormalsMapping = MapPerVertex;
+        if (NormalsMapping != MapMode::None) {
+            NormalsMapping = MapMode::PerVertex;
             Normals = move(normals);
             Assert(Normals.size() == Verts.size(), "Normals must match vertices");
         }
-        if (ColorMapping) {
-            ColorMapping = MapPerVertex;
+        if (ColorMapping != MapMode::None) {
+            ColorMapping = MapMode::PerVertex;
             Colors = move(colors);
             Assert(Colors.size()  == Verts.size(), "Colors must match vertices");
         }
@@ -631,6 +631,11 @@ namespace Nano
         return rpp::sum_all(Groups, &MeshGroup::NumColors);
     }
 
+    int Mesh::TotalAnimClips() const
+    {
+        return (int)AnimationClips.size();
+    }
+
     MeshGroup* Mesh::FindGroup(strview name)
     {
         for (auto& group : Groups)
@@ -752,7 +757,7 @@ namespace Nano
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
-    void Mesh::RecalculateNormals(const bool checkDuplicateVerts) noexcept
+    void Mesh::RecalculateNormals(bool checkDuplicateVerts) noexcept
     {
         for (MeshGroup& group : Groups)
             group.RecalculateNormals(checkDuplicateVerts);
@@ -863,6 +868,13 @@ namespace Nano
             }
         }
         return closest;
+    }
+
+    int Mesh::AddAnimClip(std::string name, float duration)
+    {
+        int id = TotalAnimClips();
+        AnimationClips.emplace_back(Nano::AnimationClip{ std::move(name), duration });
+        return id;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////

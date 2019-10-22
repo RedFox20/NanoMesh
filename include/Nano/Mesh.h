@@ -94,34 +94,34 @@ namespace Nano
     };
 
 
-    enum MapMode
+    enum class MapMode
     {
         // this mesh group element is not mapped
-        MapNone,
+        None,
 
         // extra data is mapped per vertex, this means:
         // colors are mapped for every vertex
         // normals are mapped for every vertex
         // coords are  mapped for every vertex, so UV shells must be contiguous
-        MapPerVertex,
+        PerVertex,
 
         // extra data is mapped per each face vertex; data can still be shared, but this allows
         // discontiguous submesh data, which is very common
         // colors are mapped for every face vertex, this is quite rare
         // normals are mapped for every face vertex, this is common if you have submeshes with split smoothing groups
         // coords mapped this way can have discontiguous UV shells, which is VERY common
-        MapPerFaceVertex,
+        PerFaceVertex,
 
         // extra data is mapped per face, this is very rare
         // colors are mapped for every face
         // normals are mapped for every face
         // coords are NEVER mapped this way
-        MapPerFace,
+        PerFace,
 
         // extra data is mapped inconsistently and not suitable for direct Array-of-Structures mapping to graphics hardware
         // shared element mapping is a good way to save on file size, but makes mesh modification difficult
         // MeshGroup::OptimizedFlatten() should be called to enable mesh editing
-        MapSharedElements,
+        SharedElements,
     };
 
 
@@ -258,10 +258,10 @@ namespace Nano
 
         vector<Triangle> Tris; // face descriptors (tris and/or quads)
 
-        MapMode CoordsMapping  = MapNone;
-        MapMode NormalsMapping = MapNone;
-        MapMode ColorMapping   = MapNone;
-        MapMode BlendMapping   = MapNone; // Only Per-Vertex supported
+        MapMode CoordsMapping  = MapMode::None;
+        MapMode NormalsMapping = MapMode::None;
+        MapMode ColorMapping   = MapMode::None;
+        MapMode BlendMapping   = MapMode::None; // Only Per-Vertex supported
 
         FaceWinding   Winding  = FaceWinding::CW;
         CoordSys      System   = CoordSys::GL;
@@ -311,9 +311,9 @@ namespace Nano
 
         bool IsFlattened() const noexcept
         {
-            return CoordsMapping == MapPerFaceVertex
-                && NormalsMapping == MapPerFaceVertex
-                && ColorMapping == MapPerFaceVertex;
+            return CoordsMapping == MapMode::PerFaceVertex
+                && NormalsMapping == MapMode::PerFaceVertex
+                && ColorMapping == MapMode::PerFaceVertex;
         }
 
         void UpdateNormal(const VertexDescr& vd0,
@@ -516,7 +516,7 @@ namespace Nano
         vector<MeshGroup> Groups;
         vector<MeshBone> Bones; // all bones
         vector<SkinnedBone> SkinnedBones; // only animated/skinned bones
-        unordered_map<string, AnimationClip> AnimationClips; // all animation clips, by name
+        vector<AnimationClip> AnimationClips; // all animation clips
 
         // Default empty mesh
         Mesh();
@@ -531,6 +531,7 @@ namespace Nano
         int TotalCoords() const;
         int TotalNormals() const;
         int TotalColors() const;
+        int TotalAnimClips() const;
 
 
         bool good() const { return !Groups.empty(); }
@@ -608,14 +609,14 @@ namespace Nano
         // Currently does not respect smoothing groups
         // @param checkDuplicateVerts Will perform an O(n^2) search for duplicate vertices to
         //                            correctly calculate normals for mesh surfaces with unwelded verts
-        void RecalculateNormals(const bool checkDuplicateVerts = false) noexcept;
+        void RecalculateNormals(bool checkDuplicateVerts = false) noexcept;
 
         // normal = -normal;
         void InvertNormals() noexcept;
 
         BoundingBox CalculateBBox() const noexcept;
 
-        // Adds additional meshgroups from another Mesh
+        // Adds additional MeshGroups from another Mesh
         // Optionally appends an extra offset to position vertices
         void AddMeshData(const Mesh& mesh, Vector3 offset = Vector3::Zero()) noexcept;
 
@@ -640,13 +641,16 @@ namespace Nano
         void SetFaceWinding(FaceWinding winding) noexcept;
 
         // Converts all MeshGroup 3D vector coord system by changing 
-        void SetCoordSys(CoordSys targetsSystem) noexcept;
+        void SetCoordSys(CoordSys targetSystem) noexcept;
 
         // Merges all imported groups into a single group
         void MergeGroups() noexcept;
 
         // Pick the closest face that intersects with the ray
         PickedTriangle PickTriangle(const Ray& ray) const noexcept;
+
+        // Adds a new empty animation clip and returns its index id
+        int AddAnimClip(std::string name, float duration);
     };
 
     //////////////////////////////////////////////////////////////////////

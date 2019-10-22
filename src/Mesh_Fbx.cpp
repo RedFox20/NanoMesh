@@ -73,10 +73,10 @@ namespace Nano
         switch (mode)
         {
             default: Assert(false, "Unsupported mesh reference mode");
-            case MapNone:          return FbxGeometryElement::eNone;
-            case MapPerVertex:     return FbxGeometryElement::eByControlPoint;
-            case MapPerFaceVertex: return FbxGeometryElement::eByPolygonVertex;
-            case MapPerFace:       return FbxGeometryElement::eByPolygon;
+            case MapMode::None:          return FbxGeometryElement::eNone;
+            case MapMode::PerVertex:     return FbxGeometryElement::eByControlPoint;
+            case MapMode::PerFaceVertex: return FbxGeometryElement::eByPolygonVertex;
+            case MapMode::PerFace:       return FbxGeometryElement::eByPolygon;
         }
     }
 
@@ -85,10 +85,10 @@ namespace Nano
         switch (mode)
         {
             default: Assert(false, "Unsupported mesh reference mode");
-            case MapNone:
-            case MapPerVertex:     return FbxLayerElement::eDirect;
-            case MapPerFaceVertex: return FbxLayerElement::eIndexToDirect;
-            case MapPerFace:       return FbxLayerElement::eIndexToDirect;
+            case MapMode::None:
+            case MapMode::PerVertex:     return FbxLayerElement::eDirect;
+            case MapMode::PerFaceVertex: return FbxLayerElement::eIndexToDirect;
+            case MapMode::PerFace:       return FbxLayerElement::eIndexToDirect;
         }
     }
 
@@ -234,7 +234,7 @@ namespace Nano
         // have as many mapping coordinates as polygons of which it is a part.
         if (mapMode == FbxLayerElement::eByPolygonVertex)
         {
-            meshGroup.NormalsMapping = MapPerFaceVertex;
+            meshGroup.NormalsMapping = MapMode::PerFaceVertex;
 
             const int* oldPolyVertexIds = oldIndices.data();
             for (int nextId = 0, faceId = 0; faceId < numTriangles; ++faceId)
@@ -249,7 +249,7 @@ namespace Nano
         }
         else if (mapMode == FbxLayerElement::eByControlPoint) // each mesh vertex has a single normal (best case)
         {
-            meshGroup.NormalsMapping = MapPerVertex;
+            meshGroup.NormalsMapping = MapMode::PerVertex;
 
             for (int faceId = 0; faceId < numTriangles; ++faceId)
                 for (VertexDescr& vd : faces[faceId])
@@ -261,7 +261,7 @@ namespace Nano
         }
         else if (mapMode == FbxLayerElement::eByPolygon) // each polygon has a single normal, OK case, but not ideal
         {
-            meshGroup.NormalsMapping = MapPerFace;
+            meshGroup.NormalsMapping = MapMode::PerFace;
 
             // @todo indices[faceId] might be wrong
             for (int faceId = 0; faceId < numTriangles; ++faceId)
@@ -304,7 +304,7 @@ namespace Nano
         // if indices != null, then most of these UV-s coords will be shared
         if (mapMode == FbxLayerElement::eByPolygonVertex)
         {
-            meshGroup.CoordsMapping = MapPerFaceVertex;
+            meshGroup.CoordsMapping = MapMode::PerFaceVertex;
 
             const int* oldPolyVertexIds = oldIndices.data();
             for (int nextId = 0, faceId = 0; faceId < numTriangles; ++faceId)
@@ -319,7 +319,7 @@ namespace Nano
         }
         else if (mapMode == FbxLayerElement::eByControlPoint)
         {
-            meshGroup.CoordsMapping = MapPerVertex;
+            meshGroup.CoordsMapping = MapMode::PerVertex;
 
             for (int faceId = 0; faceId < numTriangles; ++faceId)
                 for (VertexDescr& vd : faces[faceId])
@@ -362,7 +362,7 @@ namespace Nano
         // if indices != null, then most of these colors will be shared
         if (mapMode == FbxLayerElement::eByPolygonVertex)
         {
-            meshGroup.ColorMapping = MapPerFaceVertex;
+            meshGroup.ColorMapping = MapMode::PerFaceVertex;
 
             const int* oldPolyVertexIds = oldIndices.data();
             for (int nextId = 0, faceId = 0; faceId < numTriangles; ++faceId)
@@ -377,7 +377,7 @@ namespace Nano
         }
         else if (mapMode == FbxLayerElement::eByControlPoint)
         {
-            meshGroup.ColorMapping = MapPerVertex;
+            meshGroup.ColorMapping = MapMode::PerVertex;
 
             for (int faceId = 0; faceId < numTriangles; ++faceId)
                 for (VertexDescr& vd : faces[faceId])
@@ -385,7 +385,7 @@ namespace Nano
         }
         else if (mapMode == FbxLayerElement::eByPolygon)
         {
-            meshGroup.ColorMapping = MapPerFace;
+            meshGroup.ColorMapping = MapMode::PerFace;
 
             // @todo indices[faceId] might be wrong
             for (int faceId = 0; faceId < numTriangles; ++faceId)
@@ -524,7 +524,7 @@ namespace Nano
         {
             //printf("  %5d  normals\n", numNormals);
 
-            Assert((group.NormalsMapping == MapPerVertex || group.NormalsMapping == MapPerFaceVertex), 
+            Assert((group.NormalsMapping == MapMode::PerVertex || group.NormalsMapping == MapMode::PerFaceVertex), 
                     "Only per-vertex or per-face-vertex normals are supported");
 
             FbxGeometryElementNormal* elementNormal = mesh->CreateElementNormal();
@@ -539,7 +539,7 @@ namespace Nano
                 elements.Add(GLToFbxVec4(normals[i]));
             }
 
-            if (group.NormalsMapping == MapPerFaceVertex)
+            if (group.NormalsMapping == MapMode::PerFaceVertex)
             {
                 auto& indices = elementNormal->GetIndexArray();
                 for (const Triangle& face : group)
@@ -553,7 +553,7 @@ namespace Nano
     {
         if (const int numCoords = group.NumCoords())
         {
-            Assert((group.CoordsMapping == MapPerVertex || group.CoordsMapping == MapPerFaceVertex), 
+            Assert((group.CoordsMapping == MapMode::PerVertex || group.CoordsMapping == MapMode::PerFaceVertex), 
                     "Only per-vertex or per-face-vertex UV coords are supported");
 
             FbxGeometryElementUV* elementUVs = mesh->CreateElementUV("DiffuseUV");
@@ -568,7 +568,7 @@ namespace Nano
                 elements.Add(FbxVector2{ uvs[i].x, uvs[i].y });
             }
 
-            if (group.CoordsMapping == MapPerFaceVertex)
+            if (group.CoordsMapping == MapMode::PerFaceVertex)
             {
                 auto& indices = elementUVs->GetIndexArray();
                 for (const Triangle& face : group)
@@ -582,7 +582,7 @@ namespace Nano
     {
         if (const int numColors = group.NumColors())
         {
-            Assert((group.ColorMapping == MapPerVertex || group.ColorMapping == MapPerFaceVertex), 
+            Assert((group.ColorMapping == MapMode::PerVertex || group.ColorMapping == MapMode::PerFaceVertex), 
                 "Only per-vertex or per-face-vertex colors are supported");
 
             FbxGeometryElementVertexColor* elementColors = mesh->CreateElementVertexColor();
@@ -596,7 +596,7 @@ namespace Nano
                 elements.Add(FbxColor{ colors[i].x, colors[i].y, colors[i].z });
             }
 
-            if (group.ColorMapping == MapPerFaceVertex)
+            if (group.ColorMapping == MapMode::PerFaceVertex)
             {
                 auto& indices = elementColors->GetIndexArray();
                 for (const Triangle& face : group)

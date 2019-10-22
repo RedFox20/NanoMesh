@@ -34,7 +34,7 @@ namespace Nano
             return defaultMat;
         };
 
-        file f { materialSavePath, rpp::CREATENEW };
+        file f { materialSavePath, file::CREATENEW };
         if (!f) {
             NanoErr(opt, "Failed to create file: %s", materialSavePath);
         }
@@ -406,7 +406,7 @@ namespace Nano
             if (vertexColors) {
                 // OBJ colors use per-vertex mapping
                 copyElements(g.Colors, colorsData, uniqueVerts);
-                g.ColorMapping = MapPerVertex;
+                g.ColorMapping = MapMode::PerVertex;
             }
         }
 
@@ -422,7 +422,7 @@ namespace Nano
             if (numColors > 0) {
                 // OBJ colors use per-vertex mapping
                 copyElements(g.Colors, colorsData, numColors);
-                g.ColorMapping = MapPerVertex;
+                g.ColorMapping = MapMode::PerVertex;
             }
         }
 
@@ -452,14 +452,14 @@ namespace Nano
             int numCoords  = g.NumCoords();
             int numTris    = g.NumTris();
 
-            if      (numNormals <= 0)        g.NormalsMapping = MapNone;
-            else if (numNormals == numVerts) g.NormalsMapping = MapPerVertex;
-            else if (numNormals == numTris)  g.NormalsMapping = MapPerFace;
-            else if (numNormals >  numVerts) g.NormalsMapping = MapPerFaceVertex;
-            else                             g.NormalsMapping = MapSharedElements;
-            if      (numCoords == 0)         g.CoordsMapping  = MapNone;
-            else if (numCoords == numVerts)  g.CoordsMapping  = MapPerVertex;
-            else if (numCoords >  numVerts)  g.CoordsMapping  = MapPerFaceVertex;
+            if      (numNormals <= 0)        g.NormalsMapping = MapMode::None;
+            else if (numNormals == numVerts) g.NormalsMapping = MapMode::PerVertex;
+            else if (numNormals == numTris)  g.NormalsMapping = MapMode::PerFace;
+            else if (numNormals >  numVerts) g.NormalsMapping = MapMode::PerFaceVertex;
+            else                             g.NormalsMapping = MapMode::SharedElements;
+            if      (numCoords == 0)         g.CoordsMapping  = MapMode::None;
+            else if (numCoords == numVerts)  g.CoordsMapping  = MapMode::PerVertex;
+            else if (numCoords >  numVerts)  g.CoordsMapping  = MapMode::PerFaceVertex;
             else Assert(false, "Unfamiliar CoordsMapping mode");
 
             //LogInfo("BuildGroup %s elapsed: %.1fms", g.Name, t.elapsed_ms());
@@ -539,7 +539,7 @@ namespace Nano
 
     bool Mesh::SaveAsOBJ(strview meshPath, Options opt) const
     {
-        file f { meshPath, rpp::CREATENEW };
+        file f { meshPath, file::CREATENEW };
         if (!f) {
             NanoErr(opt, "Failed to create file: %s", meshPath);
         }
@@ -578,11 +578,11 @@ namespace Nano
             else // non-standard extension for OBJ vertex colors
             {
                 // @todo Just leave a warning and export incorrect vertex colors?
-                Assert((g.ColorMapping == MapPerVertex || g.ColorMapping == MapPerFaceVertex),
+                Assert((g.ColorMapping == MapMode::PerVertex || g.ColorMapping == MapMode::PerFaceVertex),
                        "OBJ export only supports per-vertex and per-face-vertex color mapping!");
                 Assert(g.NumColors() >= g.NumVerts(), "Group %s NumColors does not match NumVerts", g.Name);
 
-                auto& colors = g.ColorMapping == MapPerFaceVertex ? FlattenColors(g) : g.Colors;
+                auto& colors = g.ColorMapping == MapMode::PerFaceVertex ? FlattenColors(g) : g.Colors;
                 auto* colorsData = colors.data();
 
                 const int numVerts = g.NumVerts();
