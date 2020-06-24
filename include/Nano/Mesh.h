@@ -2,6 +2,7 @@
 #include <rpp/vec.h>
 #include <rpp/collections.h>
 #include <memory>
+#include <stdexcept>
 
 /**
  * Enables FBX mesh loader for platforms that support it
