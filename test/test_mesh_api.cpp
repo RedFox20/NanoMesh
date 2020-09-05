@@ -48,18 +48,22 @@ TestImpl(test_mesh_api)
     }
 
     template<class T>
-    bool CompareArrays(const std::vector<T>& a, 
-                              const std::vector<T>& b,
-                              const char* what)
+    bool CompareArrays(const std::vector<T>& a,
+                       const std::vector<T>& b, const char* what)
     {
-        if (a.size() != b.size()) {
-            AssertThat(a.size(), b.size());
+        if (a.size() != b.size())
+        {
+            AssertEqual(a.size(), b.size());
             LogWarning("%s array size did not match: %zu != %zu", 
                         what, a.size(), b.size());
             return false;
         }
-        for (size_t i = 0; i < a.size(); ++i) {
-            if (!Assert(AreEqual(a[i], b[i]))) {
+
+        for (int i = 0; i < static_cast<int>(a.size()); ++i)
+        {
+            if (AreEqual(a[i], b[i]))
+            {
+                Assert( AreEqual(a[i], b[i]) );
                 LogWarning("%s array elements a[%d] != b[%d]  (%s != %s)",
                     what, i, i, to_string(a[i]), to_string(b[i])
                 );
@@ -76,6 +80,7 @@ TestImpl(test_mesh_api)
             AssertEqual(a.NumGroups(), b.NumGroups());
             return false;
         }
+
         for (int i = 0; i < a.NumGroups(); ++i)
         {
             const MeshGroup& ga = a[i];
