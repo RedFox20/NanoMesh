@@ -102,8 +102,12 @@ TestImpl(test_mesh_api)
 
     bool AreVerticesEqual(const Mesh& a, const Mesh& b)
     {
-        if (!AssertThat(a.NumGroups(), b.NumGroups()))
+        if (a.NumGroups() != b.NumGroups())
+        {
+            AssertEqual(a.NumGroups(), b.NumGroups());
             return false;
+        }
+
         for (int i = 0; i < a.NumGroups(); ++i)
         {
             const MeshGroup& ga = a[i];
