@@ -52,7 +52,8 @@ TestImpl(test_mesh_api)
                               const std::vector<T>& b,
                               const char* what)
     {
-        if (!AssertThat(a.size(), b.size())) {
+        if (a.size() != b.size()) {
+            AssertThat(a.size(), b.size());
             LogWarning("%s array size did not match: %zu != %zu", 
                         what, a.size(), b.size());
             return false;
@@ -70,8 +71,11 @@ TestImpl(test_mesh_api)
 
     bool AreMeshesEqual(const Mesh& a, const Mesh& b)
     {
-        if (!AssertThat(a.NumGroups(), b.NumGroups()))
+        if (a.NumGroups() != b.NumGroups())
+        {
+            AssertEqual(a.NumGroups(), b.NumGroups());
             return false;
+        }
         for (int i = 0; i < a.NumGroups(); ++i)
         {
             const MeshGroup& ga = a[i];
