@@ -7,14 +7,10 @@
 
 namespace Nano
 {
-    using std::make_shared;
-    using rpp::file;
-    using rpp::string_buffer;
-    using rpp::buffer_line_parser;
     using namespace rpp::literals;
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
-    static int SkipAndParse(strview line)
+    static int SkipAndParse(rpp::strview line)
     {
         line.next(' ');
         return line.to_int();
@@ -27,49 +23,49 @@ namespace Nano
         return elements.data() + oldSize;
     }
 
-    static void ParseVerts(MeshGroup& g, strview line, buffer_line_parser& parser)
+    static void ParseVerts(MeshGroup& g, rpp::strview line, rpp::buffer_line_parser& parser)
     {
         int numVerts = SkipAndParse(line);
-        Vector3* verts = ExpandArray(g.Verts, numVerts);
+        rpp::Vector3* verts = ExpandArray(g.Verts, numVerts);
         for (int i = 0; i < numVerts && parser.read_line(line); ++i) {
-            Vector3& v = verts[i];
+            rpp::Vector3& v = verts[i];
             line >> v.x >> v.y >> v.z;
         }
     }
 
-    static void ParseCoords(MeshGroup& g, strview line, buffer_line_parser& parser)
+    static void ParseCoords(MeshGroup& g, rpp::strview line, rpp::buffer_line_parser& parser)
     {
         int numCoords = SkipAndParse(line);
-        Vector2* coords = ExpandArray(g.Coords, numCoords);
+        rpp::Vector2* coords = ExpandArray(g.Coords, numCoords);
         for (int i = 0; i < numCoords && parser.read_line(line); ++i) {
-            Vector2& c = coords[i];
+            rpp::Vector2& c = coords[i];
             line >> c.x >> c.y;
         }
     }
 
-    static void ParseNormals(MeshGroup& g, strview line, buffer_line_parser& parser)
+    static void ParseNormals(MeshGroup& g, rpp::strview line, rpp::buffer_line_parser& parser)
     {
         int numNormals = SkipAndParse(line);
-        Vector3* normals = ExpandArray(g.Normals, numNormals);
+        rpp::Vector3* normals = ExpandArray(g.Normals, numNormals);
         for (int i = 0; i < numNormals && parser.read_line(line); ++i) {
-            Vector3& n = normals[i];
+            rpp::Vector3& n = normals[i];
             line >> n.x >> n.y >> n.z;
         }
     }
 
-    static void ParsePolys(MeshGroup& g, strview line, buffer_line_parser& parser)
+    static void ParsePolys(MeshGroup& g, rpp::strview line, rpp::buffer_line_parser& parser)
     {
         int numPolys = SkipAndParse(line);
         g.Tris.reserve(g.Tris.size() + (numPolys * 2)); // assume we are getting 4-point polys
 
-        auto parseDescr = [&](VertexDescr& vd, strview vertdescr) {
-            if (strview v = vertdescr.next('/')) {
+        auto parseDescr = [&](VertexDescr& vd, rpp::strview vertdescr) {
+            if (rpp::strview v = vertdescr.next('/')) {
                 vd.v = v.to_int() - 1;
             }
-            if (strview t = vertdescr.next('/')) {
+            if (rpp::strview t = vertdescr.next('/')) {
                 vd.t = t.to_int() - 1;
             }
-            if (strview n = vertdescr) {
+            if (rpp::strview n = vertdescr) {
                 vd.n = n.to_int() - 1;
             }
         };
@@ -85,7 +81,7 @@ namespace Nano
 
             // when encountering quads or large polygons, we need to triangulate the mesh
             // by tracking the first vertex descr and forming a fan; this requires convex polys
-            while (strview vertdescr = line.next(' '))
+            while (rpp::strview vertdescr = line.next(' '))
             {
                 // face vertices are in CCW order:
                 // 0--3
@@ -131,11 +127,11 @@ namespace Nano
         }
     }
 
-    bool Mesh::LoadTXT(strview meshPath, Options opt)
+    bool Mesh::LoadTXT(rpp::strview meshPath, Options opt)
     {
         Clear();
 
-        auto parser = buffer_line_parser::from_file(meshPath);
+        auto parser = rpp::buffer_line_parser::from_file(meshPath);
         if (!parser) {
             NanoErr(opt, "Failed to open file: %s", meshPath);
         }
@@ -150,7 +146,7 @@ namespace Nano
             return false; \
         }
 
-        strview line;
+        rpp::strview line;
         while (parser.read_line(line))
         {
             if (line.starts_with("mesh"_sv)) {

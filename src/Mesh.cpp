@@ -6,11 +6,6 @@
 
 namespace Nano
 {
-    using std::swap;
-    using std::move;
-    using std::make_shared;
-    using rpp::string_buffer;
-    using rpp::append;
     using namespace rpp::literals;
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -39,24 +34,24 @@ namespace Nano
         return a != t.a || b != t.b || c != t.c;
     }
 
-    string to_string(const Triangle& triangle)
+    std::string to_string(const Triangle& triangle)
     {
-        string_buffer sb;
+        rpp::string_buffer sb;
         sb.writef("{%d,%d,%d}", triangle.a.v, triangle.b.v, triangle.c.v);
         return sb.str();
     }
 
-    Vector3 PickedTriangle::center() const
+    rpp::Vector3 PickedTriangle::center() const
     {
         Assert(good(), "Invalid PickedTriangle");
-        Vector3 c = group->Vertex(face->a);
+        rpp::Vector3 c = group->Vertex(face->a);
         c += group->Vertex(face->b);
         c += group->Vertex(face->c);
         c /= 3;
         return c;
     }
 
-    Vector3 PickedTriangle::vertex(const VertexDescr& vd) const
+    rpp::Vector3 PickedTriangle::vertex(const VertexDescr& vd) const
     {
         Assert(good(), "Invalid PickedTriangle");
         Assert(vd.v != -1 && vd.v < group->NumVerts(), 
@@ -77,9 +72,9 @@ namespace Nano
         return -1;
     }
 
-    string to_string(const PickedTriangle& triangle)
+    std::string to_string(const PickedTriangle& triangle)
     {
-        string_buffer sb;
+        rpp::string_buffer sb;
         sb.write('{');
         sb.write(triangle.group?triangle.group->GroupId:-1);
         sb.write(',');
@@ -107,9 +102,9 @@ namespace Nano
         BlendMapping = MapMode::None;
     }
 
-    Material& MeshGroup::CreateMaterial(string name)
+    Material& MeshGroup::CreateMaterial(std::string name)
     {
-        Mat = make_shared<Material>();
+        Mat = std::make_shared<Material>();
         Mat->Name = move(name);
         return *Mat;
     }
@@ -120,7 +115,7 @@ namespace Nano
             return;
         for (Triangle& tri : Tris) {
             // 0 1 2 --> 0 2 1
-            swap(tri.b, tri.c);
+            std::swap(tri.b, tri.c);
         }
         Winding = winding;
     }
@@ -136,8 +131,8 @@ namespace Nano
         };
 
         if (isBilateralMatch(CoordSys::GL, CoordSys::Unity)) {
-            for (Vector3& v : Verts)   v.x = -v.x;
-            for (Vector3& n : Normals) n.x = -n.x;
+            for (rpp::Vector3& v : Verts)   v.x = -v.x;
+            for (rpp::Vector3& n : Normals) n.x = -n.x;
         }
 
         System = targetSystem;
@@ -151,14 +146,14 @@ namespace Nano
         auto* verts   = Verts.data();
         auto* normals = Normals.data();
 
-        const Vector3& v0 = verts[vd0.v];
-        const Vector3& v1 = verts[vd1.v];
-        const Vector3& v2 = verts[vd2.v];
+        const rpp::Vector3& v0 = verts[vd0.v];
+        const rpp::Vector3& v1 = verts[vd1.v];
+        const rpp::Vector3& v2 = verts[vd2.v];
 
         // calculate triangle normal:
-        Vector3 ba = v1 - v0;
-        Vector3 ca = v2 - v0;
-        Vector3 normal = ba.cross(ca);
+        rpp::Vector3 ba = v1 - v0;
+        rpp::Vector3 ca = v2 - v0;
+        rpp::Vector3 normal = ba.cross(ca);
 
         if (!checkDuplicateVerts)
         {
@@ -176,7 +171,7 @@ namespace Nano
             {
                 for (const VertexDescr& vd : f)
                 {
-                    const Vector3& v = verts[vd.v];
+                    const rpp::Vector3& v = verts[vd.v];
                     if (v == v0 || v == v1 || v == v2)
                     {
                         Assert(vd.n != -1, "Invalid vertex normalId -1");
@@ -190,8 +185,8 @@ namespace Nano
 
     void MeshGroup::RecalculateNormals(const bool checkDuplicateVerts) noexcept
     {
-        for (Vector3& normal : Normals)
-            normal = Vector3::Zero();
+        for (rpp::Vector3& normal : Normals)
+            normal = rpp::Vector3::Zero();
 
         FaceWinding winding = Winding;
 
@@ -207,17 +202,17 @@ namespace Nano
                 UpdateNormal(tri.c, tri.b, tri.a, checkDuplicateVerts);
             }
         }
-        for (Vector3& normal : Normals)
+        for (rpp::Vector3& normal : Normals)
             normal.normalize();
     }
 
-    Vector3 MeshGroup::GetNormalForSelection(const vector<WeightId>& selection) const noexcept
+    rpp::Vector3 MeshGroup::GetNormalForSelection(const std::vector<WeightId>& selection) const noexcept
     {
-        Vector3 normal = Vector3::Zero();
+        rpp::Vector3 normal = rpp::Vector3::Zero();
         if (selection.empty() || NormalsMapping != MapMode::PerVertex)
             return normal;
 
-        const Vector3* normals = NormalData();
+        const rpp::Vector3* normals = NormalData();
         for (WeightId wid : selection)
         {
             normal += normals[wid.ID];
@@ -228,7 +223,7 @@ namespace Nano
 
     void MeshGroup::InvertNormals() noexcept
     {
-        for (Vector3& normal : Normals)
+        for (rpp::Vector3& normal : Normals)
             normal = -normal;
     }
 
@@ -241,10 +236,10 @@ namespace Nano
         auto* meshNormals = Normals.data();
         auto* meshColors  = Colors.data();
         size_t count = Tris.size() * 3u;
-        vector<Vector3> verts; verts.reserve(count);
-        vector<Vector2> coords;  if (!Coords.empty())   coords.reserve(count);
-        vector<Vector3> normals; if (!Normals.empty()) normals.reserve(count);
-        vector<Color3>  colors;  if (!Colors.empty())   colors.reserve(count);
+        std::vector<rpp::Vector3> verts; verts.reserve(count);
+        std::vector<rpp::Vector2> coords;  if (!Coords.empty())   coords.reserve(count);
+        std::vector<rpp::Vector3> normals; if (!Normals.empty()) normals.reserve(count);
+        std::vector<rpp::Color3>  colors;  if (!Colors.empty())   colors.reserve(count);
 
         int vertexId = 0, coordId = 0, normalId = 0, colorId = 0;
         for (Triangle& f : Tris)
@@ -278,7 +273,7 @@ namespace Nano
         ColorMapping   = Colors.empty()  ? MapMode::None : MapMode::PerFaceVertex;
     }
 
-    void MeshGroup::SetVertexColor(int vertexId, const Color3& vertexColor) noexcept
+    void MeshGroup::SetVertexColor(int vertexId, const rpp::Color3& vertexColor) noexcept
     {
         Assert(vertexId < NumVerts(), "Invalid vertexId %d >= numVerts(%d)", vertexId, NumVerts());
 
@@ -289,7 +284,7 @@ namespace Nano
         Colors[vertexId] = vertexColor;
     }
 
-    void MeshGroup::AddMeshData(const MeshGroup& group, Vector3 offset) noexcept
+    void MeshGroup::AddMeshData(const MeshGroup& group, rpp::Vector3 offset) noexcept
     {
         const int numVertsOld   = (int)Verts.size();
         const int numCoordsOld  = (int)Coords.size();
@@ -297,7 +292,7 @@ namespace Nano
         const int numTrisOld    = (int)Tris.size();
 
         append(Verts, group.Verts);
-        if (offset != Vector3::Zero())
+        if (offset != rpp::Vector3::Zero())
         {
             for (int i = numVertsOld, count = (int)Verts.size(); i < count; ++i)
                 Verts[i] += offset;
@@ -332,7 +327,7 @@ namespace Nano
         }
     }
 
-    void MeshGroup::CreateGameVertexData(vector<BasicVertex>& vertices, vector<int>& indices) const noexcept
+    void MeshGroup::CreateGameVertexData(std::vector<BasicVertex>& vertices, std::vector<int>& indices) const noexcept
     {
         auto* meshVerts   = Verts.data();
         auto* meshCoords  = Coords.data();
@@ -346,9 +341,9 @@ namespace Nano
         {
             indices.push_back(vertexId++);
             vertices.emplace_back<BasicVertex>({
-                vd.v != -1 ? meshVerts[vd.v]   : Vector3::Zero(),
-                vd.t != -1 ? meshCoords[vd.t]  : Vector2::Zero(),
-                vd.n != -1 ? meshNormals[vd.n] : Vector3::Zero()
+                vd.v != -1 ? meshVerts[vd.v]   : rpp::Vector3::Zero(),
+                vd.t != -1 ? meshCoords[vd.t]  : rpp::Vector2::Zero(),
+                vd.n != -1 ? meshNormals[vd.n] : rpp::Vector3::Zero()
             });
         };
 
@@ -381,8 +376,8 @@ namespace Nano
         size_t numTris  = Tris.size();
         auto*  oldFaces = Tris.data();
         auto*  oldVerts = Verts.data();
-        vector<Triangle> faces; faces.resize(numTris);
-        vector<Vector3>  verts; verts.reserve(Verts.size());
+        std::vector<Triangle> faces; faces.resize(numTris);
+        std::vector<rpp::Vector3>  verts; verts.reserve(Verts.size());
 
         for (size_t faceId = 0; faceId < numTris; ++faceId)
         {
@@ -414,11 +409,11 @@ namespace Nano
         if (!oldCoords && !oldNormals && !oldColors)
             return; // nothing to do here
         
-        vector<Vector2> coords;   coords.reserve(Verts.size());
-        vector<Vector3> normals; normals.reserve(Verts.size());
-        vector<Color3>  colors;   colors.reserve(Verts.size());
+        std::vector<rpp::Vector2> coords;   coords.reserve(Verts.size());
+        std::vector<rpp::Vector3> normals; normals.reserve(Verts.size());
+        std::vector<rpp::Color3>  colors;   colors.reserve(Verts.size());
 
-        vector<bool> added; added.resize(Verts.size());
+        std::vector<bool> added; added.resize(Verts.size());
 
         for (Triangle& face : Tris)
         {
@@ -428,9 +423,9 @@ namespace Nano
                 if (!added[vertexId])
                 {
                     added[vertexId] = true;
-                    if (oldCoords)   coords.push_back(vd.t != -1 ?  oldCoords[vd.t] : Vector2::Zero());
-                    if (oldNormals) normals.push_back(vd.n != -1 ? oldNormals[vd.n] : Vector3::Zero());
-                    if (oldColors)   colors.push_back(vd.c != -1 ?  oldColors[vd.c] : Color3::Zero());
+                    if (oldCoords)   coords.push_back(vd.t != -1 ?  oldCoords[vd.t] : rpp::Vector2::Zero());
+                    if (oldNormals) normals.push_back(vd.n != -1 ? oldNormals[vd.n] : rpp::Vector3::Zero());
+                    if (oldColors)   colors.push_back(vd.c != -1 ?  oldColors[vd.c] : rpp::Color3::Zero());
                 }
 
                 if (oldCoords)  vd.t = vertexId;
@@ -462,27 +457,27 @@ namespace Nano
         PerVertexFlatten();
     }
 
-    void MeshGroup::CreateIndexArray(vector<int>& indices) const noexcept
+    void MeshGroup::CreateIndexArray(std::vector<int>& indices) const noexcept
     {
         CreateIndexArray(indices, Winding);
     }
     
-    void MeshGroup::CreateIndexArray(vector<short>& indices) const noexcept
+    void MeshGroup::CreateIndexArray(std::vector<short>& indices) const noexcept
     {
         CreateIndexArray(indices, Winding);
     }
 
-    void MeshGroup::CreateIndexArray(vector<unsigned>& indices) const noexcept
+    void MeshGroup::CreateIndexArray(std::vector<unsigned>& indices) const noexcept
     {
-        CreateIndexArray(reinterpret_cast<vector<int>&>(indices), Winding);
+        CreateIndexArray(reinterpret_cast<std::vector<int>&>(indices), Winding);
     }
 
-    void MeshGroup::CreateIndexArray(vector<unsigned short>& indices) const noexcept
+    void MeshGroup::CreateIndexArray(std::vector<unsigned short>& indices) const noexcept
     {
-        CreateIndexArray(reinterpret_cast<vector<short>&>(indices), Winding);
+        CreateIndexArray(reinterpret_cast<std::vector<short>&>(indices), Winding);
     }
 
-    void MeshGroup::CreateIndexArray(vector<int>& indices, FaceWinding winding) const noexcept
+    void MeshGroup::CreateIndexArray(std::vector<int>& indices, FaceWinding winding) const noexcept
     {
         indices.clear();
         indices.reserve(Tris.size() * 3u);
@@ -504,7 +499,7 @@ namespace Nano
         }
     }
 
-    void MeshGroup::CreateIndexArray(vector<short>& indices, FaceWinding winding) const noexcept
+    void MeshGroup::CreateIndexArray(std::vector<short>& indices, FaceWinding winding) const noexcept
     {
         indices.clear();
         indices.reserve(Tris.size() * 3u);
@@ -526,17 +521,17 @@ namespace Nano
         }
     }
 
-    PickedTriangle MeshGroup::PickTriangle(const Ray& ray) const noexcept
+    PickedTriangle MeshGroup::PickTriangle(const rpp::Ray& ray) const noexcept
     {
-        const Vector3* verts = Verts.data();
+        const rpp::Vector3* verts = Verts.data();
         const Triangle* picked = nullptr;
         float closestDist = 9999999999999.0f;
 
         for (const Triangle& tri : Tris)
         {
-            const Vector3& v0 = verts[tri.a.v];
-            const Vector3& v1 = verts[tri.b.v];
-            const Vector3& v2 = verts[tri.c.v];
+            const rpp::Vector3& v0 = verts[tri.a.v];
+            const rpp::Vector3& v1 = verts[tri.b.v];
+            const rpp::Vector3& v2 = verts[tri.c.v];
             float dist = ray.intersectTriangle(v0, v1, v2);
             if (dist > 0.0f && dist < closestDist) {
                 closestDist = dist;
@@ -548,14 +543,14 @@ namespace Nano
 
     void MeshGroup::Print() const
     {
-        string_buffer sb;
+        rpp::string_buffer sb;
         sb.writef("   group  %-28s", Name.c_str());
         if (NumVerts())  sb.writef("  %5d verts", NumVerts());
         if (NumTris())   sb.writef("  %5d tris", NumTris());
         if (NumCoords()) sb.writef("  %5d uvs", NumCoords());
         if (NumNormals())sb.writef("  %5d normals", NumNormals());
         if (NumColors()) sb.writef("  %5d colors", NumColors());
-        if (Offset != Vector3::Zero()) {
+        if (Offset != rpp::Vector3::Zero()) {
             char buf[48]; sb.writef("  offset:%s", Offset.toString(buf));
         }
         LogInfo("%.*s", sb.size(), sb.data());
@@ -565,11 +560,11 @@ namespace Nano
     {
         if (!what) what = Name.c_str();
         const int numVerts = NumVerts();
-        const Vector3* verts = VertexData();
-        string_buffer sb;
+        const rpp::Vector3* verts = VertexData();
+        rpp::string_buffer sb;
         sb.writef("%s vertices[%d]:", what, numVerts);
         for (int i = 0; i < numVerts; ++i) {
-            const Vector3& v = verts[i];
+            const rpp::Vector3& v = verts[i];
             sb.writef("\n  [%d] { %.3f, %.3f, %.3f }", i, v.x, v.y, v.z);
         }
         LogInfo("%.*s", sb.size(), sb.data());
@@ -605,7 +600,7 @@ namespace Nano
     Mesh::Mesh() = default;
     Mesh::~Mesh() = default;
 
-    Mesh::Mesh(strview meshPath, Options options)
+    Mesh::Mesh(rpp::strview meshPath, Options options)
     {
         Load(meshPath, options);
     }
@@ -636,33 +631,33 @@ namespace Nano
         return (int)AnimationClips.size();
     }
 
-    MeshGroup* Mesh::FindGroup(strview name)
+    MeshGroup* Mesh::FindGroup(rpp::strview name)
     {
         for (auto& group : Groups)
             if (group.Name == name) return &group;
         return nullptr;
     }
 
-    const MeshGroup* Mesh::FindGroup(strview name) const
+    const MeshGroup* Mesh::FindGroup(rpp::strview name) const
     {
         for (auto& group : Groups)
             if (group.Name == name) return &group;
         return nullptr;
     }
 
-    MeshGroup& Mesh::CreateGroup(string name)
+    MeshGroup& Mesh::CreateGroup(std::string name)
     {
         return rpp::emplace_back(Groups, (int)Groups.size(), name);
     }
 
-    MeshGroup& Mesh::FindOrCreateGroup(strview name)
+    MeshGroup& Mesh::FindOrCreateGroup(rpp::strview name)
     {
         if (MeshGroup* group = FindGroup(name))
             return *group;
         return emplace_back(Groups, (int)Groups.size(), name);
     }
 
-    shared_ptr<Material> Mesh::FindMaterial(strview name) const
+    std::shared_ptr<Material> Mesh::FindMaterial(rpp::strview name) const
     {
         for (const MeshGroup& group : Groups)
             if (name.equalsi(group.Name))
@@ -693,12 +688,12 @@ namespace Nano
         if (cloneMaterials) {
             for (auto& group : obj.Groups)
                 if (group.Mat)
-                    group.Mat = make_shared<Material>(*group.Mat);
+                    group.Mat = std::make_shared<Material>(*group.Mat);
         }
         return obj;
     }
 
-    bool Mesh::Load(strview meshPath, Options opt)
+    bool Mesh::Load(rpp::strview meshPath, Options opt)
     {
         //rpp::ScopedPerfTimer perf{ "Nano::Mesh::Load" };
 
@@ -707,7 +702,7 @@ namespace Nano
                 |  Options::Flatten     | Options::ClockWise;
         }
 
-        strview ext = file_ext(meshPath);
+        rpp::strview ext = rpp::file_ext(meshPath);
         if (ext.equalsi("fbx"_sv)) return LoadFBX(meshPath, opt);
         if (ext.equalsi("obj"_sv)) return LoadOBJ(meshPath, opt);
         if (ext.equalsi("txt"_sv)) return LoadTXT(meshPath, opt);
@@ -744,11 +739,11 @@ namespace Nano
         }
     }
 
-    bool Mesh::SaveAs(strview meshPath, Options opt) const
+    bool Mesh::SaveAs(rpp::strview meshPath, Options opt) const
     {
         //rpp::ScopedPerfTimer perf{ "Nano::Mesh::SaveAs" };
         
-        strview ext = file_ext(meshPath);
+        rpp::strview ext = file_ext(meshPath);
         if (ext.equalsi("fbx"_sv)) return SaveAsFBX(meshPath, opt);
         if (ext.equalsi("obj"_sv)) return SaveAsOBJ(meshPath, opt);
 
@@ -771,12 +766,12 @@ namespace Nano
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
-    void Mesh::AddMeshData(const Mesh& mesh, Vector3 offset) noexcept
+    void Mesh::AddMeshData(const Mesh& mesh, rpp::Vector3 offset) noexcept
     {
         size_t numGroupsOld  = Groups.size();
         rpp::append(Groups, mesh.Groups);
 
-        auto oldGroupHasIdenticalName = [=](strview name) {
+        auto oldGroupHasIdenticalName = [=](rpp::strview name) {
             for (size_t i = 0; i < numGroupsOld; ++i)
                 if (Groups[i].Name == name) return true;
             return false;
@@ -788,20 +783,20 @@ namespace Nano
             while (oldGroupHasIdenticalName(group.Name))
                 group.Name += "_" + std::to_string(numGroupsOld);
 
-            if (offset != Vector3::Zero()) {
-                for (Vector3& vertex : group.Verts)
+            if (offset != rpp::Vector3::Zero()) {
+                for (rpp::Vector3& vertex : group.Verts)
                     vertex += offset;
             }
         }
     }
 
-    BoundingBox Mesh::CalculateBBox() const noexcept
+    rpp::BoundingBox Mesh::CalculateBBox() const noexcept
     {
         if (Groups.empty())
             return {};
-        BoundingBox bounds = BoundingBox::create(Groups.front().Verts);
+        rpp::BoundingBox bounds = rpp::BoundingBox::create(Groups.front().Verts);
         for (size_t i = 1; i < Groups.size(); ++i)
-            bounds.join(BoundingBox::create(Groups[i].Verts));
+            bounds.join(rpp::BoundingBox::create(Groups[i].Verts));
         return bounds;
     }
 
@@ -857,7 +852,7 @@ namespace Nano
         }
     }
 
-    PickedTriangle Mesh::PickTriangle(const Ray& ray) const noexcept
+    PickedTriangle Mesh::PickTriangle(const rpp::Ray& ray) const noexcept
     {
         PickedTriangle closest = {};
         for (const MeshGroup& group : Groups)

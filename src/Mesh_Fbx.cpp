@@ -4,13 +4,15 @@
 #if ENABLE_FBX_MESH_LOADER
 #include <memory> // unique_ptr
 #include <mutex>
+#define FBXSDK_NAMESPACE_USING 0
 #include <fbxsdk.h>
 #include <rpp/file_io.h>
 
 namespace Nano
 {
-    static FbxManager*    SdkManager;
-    static FbxIOSettings* IOSettings;
+    namespace fbx = fbxsdk;
+    static fbx::FbxManager*    SdkManager;
+    static fbx::FbxIOSettings* IOSettings;
     static std::mutex     SdkMutex;
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -27,11 +29,11 @@ namespace Nano
     // scoped read lock
     template<class T> struct FbxReadLock
     {
-        FbxLayerElementArrayTemplate<T>& arr;
+        fbx::FbxLayerElementArrayTemplate<T>& arr;
         const T* data;
         int count;
-        explicit FbxReadLock(FbxLayerElementArrayTemplate<T>& arr) : arr{arr}, 
-            data{(T*)arr.GetLocked(FbxLayerElementArray::eReadLock)}, 
+        explicit FbxReadLock(fbx::FbxLayerElementArrayTemplate<T>& arr) : arr{arr}, 
+            data{(T*)arr.GetLocked(fbx::FbxLayerElementArray::eReadLock)}, 
             count{arr.GetCount()} {}
         ~FbxReadLock() { arr.ReadUnlock(); }
         FbxReadLock(FbxReadLock&&) = delete;
@@ -43,12 +45,12 @@ namespace Nano
     // scoped write lock with a resize initializer
     template<class T> struct FbxWriteLock
     {
-        FbxLayerElementArrayTemplate<T>& arr;
+        fbx::FbxLayerElementArrayTemplate<T>& arr;
         T* data;
-        explicit FbxWriteLock(int resizeTo, FbxLayerElementArrayTemplate<T>& arr) : arr{ arr }
+        explicit FbxWriteLock(int resizeTo, fbx::FbxLayerElementArrayTemplate<T>& arr) : arr{ arr }
         {
             arr.AddMultiple(resizeTo);
-            data = (T*)arr.GetLocked(FbxLayerElementArray::eReadWriteLock);
+            data = (T*)arr.GetLocked(fbx::FbxLayerElementArray::eReadWriteLock);
         }
         ~FbxWriteLock() { arr.ReadWriteUnlock(); }
         FbxWriteLock(FbxWriteLock&&) = delete;
@@ -61,53 +63,53 @@ namespace Nano
     {
         static bool initialized = [] // C++17 thread-safe static init
         {
-            SdkManager = FbxManager::Create();
-            IOSettings = FbxIOSettings::Create(SdkManager, "IOSRoot");
+            SdkManager = fbx::FbxManager::Create();
+            IOSettings = fbx::FbxIOSettings::Create(SdkManager, "IOSRoot");
             SdkManager->SetIOSettings(IOSettings);
             return true;
         }();
     }
 
-    static FbxGeometryElement::EMappingMode toFbxMapping(MapMode mode)
+    static fbx::FbxGeometryElement::EMappingMode toFbxMapping(MapMode mode)
     {
         switch (mode)
         {
             default: Assert(false, "Unsupported mesh reference mode");
-            case MapMode::None:          return FbxGeometryElement::eNone;
-            case MapMode::PerVertex:     return FbxGeometryElement::eByControlPoint;
-            case MapMode::PerFaceVertex: return FbxGeometryElement::eByPolygonVertex;
-            case MapMode::PerFace:       return FbxGeometryElement::eByPolygon;
+            case MapMode::None:          return fbx::FbxGeometryElement::eNone;
+            case MapMode::PerVertex:     return fbx::FbxGeometryElement::eByControlPoint;
+            case MapMode::PerFaceVertex: return fbx::FbxGeometryElement::eByPolygonVertex;
+            case MapMode::PerFace:       return fbx::FbxGeometryElement::eByPolygon;
         }
     }
 
-    static FbxLayerElement::EReferenceMode toFbxReference(MapMode mode)
+    static fbx::FbxLayerElement::EReferenceMode toFbxReference(MapMode mode)
     {
         switch (mode)
         {
             default: Assert(false, "Unsupported mesh reference mode");
             case MapMode::None:
-            case MapMode::PerVertex:     return FbxLayerElement::eDirect;
-            case MapMode::PerFaceVertex: return FbxLayerElement::eIndexToDirect;
-            case MapMode::PerFace:       return FbxLayerElement::eIndexToDirect;
+            case MapMode::PerVertex:     return fbx::FbxLayerElement::eDirect;
+            case MapMode::PerFaceVertex: return fbx::FbxLayerElement::eIndexToDirect;
+            case MapMode::PerFace:       return fbx::FbxLayerElement::eIndexToDirect;
         }
     }
 
     // description string for mapping mode
-    static const char* toString(FbxGeometryElement::EMappingMode mapping) noexcept
+    static const char* toString(fbx::FbxGeometryElement::EMappingMode mapping) noexcept
     {
         switch (mapping)
         {
             default:
-            case FbxLayerElement::eNone:            return "no";
-            case FbxLayerElement::eByControlPoint:  return "per-vertex";
-            case FbxLayerElement::eByPolygonVertex: return "per-face-vertex";
-            case FbxLayerElement::eByPolygon:       return "per-face";
-            case FbxLayerElement::eByEdge:          return "per-edge";
-            case FbxLayerElement::eAllSame:         return "uniform";
+            case fbx::FbxLayerElement::eNone:            return "no";
+            case fbx::FbxLayerElement::eByControlPoint:  return "per-vertex";
+            case fbx::FbxLayerElement::eByPolygonVertex: return "per-face-vertex";
+            case fbx::FbxLayerElement::eByPolygon:       return "per-face";
+            case fbx::FbxLayerElement::eByEdge:          return "per-edge";
+            case fbx::FbxLayerElement::eAllSame:         return "uniform";
         }
     }
 
-    static FINLINE Vector3 FbxToOpenGL(FbxVector4 v)
+    static FINLINE rpp::Vector3 FbxToOpenGL(fbx::FbxVector4 v)
     {
         return {
              (float)v.mData[0],
@@ -115,7 +117,7 @@ namespace Nano
             -(float)v.mData[1],  // OGL Z is fwd, so ourFwdZ = fbxFwdY
         };
     }
-    static FINLINE Vector3 FbxToOpenGL(FbxDouble3 v)
+    static FINLINE rpp::Vector3 FbxToOpenGL(fbx::FbxDouble3 v)
     {
         return {
              (float)v.mData[0],
@@ -123,7 +125,7 @@ namespace Nano
             -(float)v.mData[1],  // OGL Z is fwd, so ourFwdZ = fbxFwdY
         };
     }
-    static FINLINE FbxVector4 GLToFbxVec4(Vector3 v)
+    static FINLINE fbx::FbxVector4 GLToFbxVec4(rpp::Vector3 v)
     {
         return {
             (double)v.x,
@@ -131,7 +133,7 @@ namespace Nano
             (double)v.y 
         };
     }
-    static FINLINE FbxDouble3 GLToFbxDouble3(Vector3 v)
+    static FINLINE fbx::FbxDouble3 GLToFbxDouble3(rpp::Vector3 v)
     {
         return {
             (double)v.x,
@@ -139,7 +141,7 @@ namespace Nano
             (double)v.y 
         };
     }
-    static FINLINE FbxDouble3 ToFbxColor3(Vector3 v)
+    static FINLINE fbx::FbxDouble3 ToFbxColor3(rpp::Vector3 v)
     {
         return { (double)v.x, (double)v.y, (double)v.z };
     }
@@ -147,13 +149,13 @@ namespace Nano
     ///////////////////////////////////////////////////////////////////////////////////////////////
     
     static void LoadVerticesAndFaces(
-        MeshGroup& meshGroup, const FbxMesh* fbxMesh, 
-        vector<int>& oldIndices)
+        Nano::MeshGroup& meshGroup, const fbx::FbxMesh* fbxMesh, 
+        std::vector<int>& oldIndices)
     {
         int numVertices = fbxMesh->GetControlPointsCount();
         meshGroup.Verts.resize(numVertices);
-        Vector3*    vertices = meshGroup.Verts.data();
-        FbxVector4* fbxVertices = fbxMesh->GetControlPoints();
+        rpp::Vector3*    vertices = meshGroup.Verts.data();
+        fbx::FbxVector4* fbxVertices = fbxMesh->GetControlPoints();
 
         for (int i = 0; i < numVertices; ++i)
             vertices[i] = FbxToOpenGL(fbxVertices[i]);
@@ -161,7 +163,7 @@ namespace Nano
         int numPolygons = fbxMesh->GetPolygonCount();
         int* indices = fbxMesh->GetPolygonVertices(); // control point indices
 
-        vector<Triangle>& triangles = meshGroup.Tris;
+        std::vector<Nano::Triangle>& triangles = meshGroup.Tris;
         triangles.reserve(numPolygons);
         oldIndices.reserve(numPolygons * 3);
 
@@ -173,7 +175,7 @@ namespace Nano
             
             Assert(numPolygonVertices >= 3, "Not enough polygon vertices: %d. Expected at least 3.", numPolygonVertices);
 
-            Triangle* f = &rpp::emplace_back(triangles);
+            Nano::Triangle* f = &rpp::emplace_back(triangles);
             f->a.v = vertexIds[0];
             f->b.v = vertexIds[1];
             f->c.v = vertexIds[2];
@@ -204,13 +206,13 @@ namespace Nano
     }
 
     static void LoadNormals(MeshGroup& meshGroup, 
-        FbxGeometryElementNormal* elementNormal, 
-        const vector<int>& oldIndices)
+        fbx::FbxGeometryElementNormal* elementNormal, 
+        const std::vector<int>& oldIndices)
     {
-        FbxLayerElement::EMappingMode mapMode = elementNormal->GetMappingMode();
-        FbxReadLock<FbxVector4> normalsLock {elementNormal->GetDirectArray()};
+        fbx::FbxLayerElement::EMappingMode mapMode = elementNormal->GetMappingMode();
+        FbxReadLock<fbx::FbxVector4> normalsLock {elementNormal->GetDirectArray()};
         FbxReadLock<int>        indexLock   {elementNormal->GetIndexArray()};
-        const FbxVector4* fbxNormals = normalsLock.data;
+        const fbx::FbxVector4* fbxNormals = normalsLock.data;
         const int*        indices    = indexLock.data; // if != null, normals are indexed
 
         //printf("  %5d  %s normals\n", normalsLock.count, toString(mapMode));
@@ -218,7 +220,7 @@ namespace Nano
         const int numNormals = normalsLock.count;
         const int maxNormals = indices ? indexLock.count : numNormals;
         meshGroup.Normals.resize(numNormals);
-        Vector3* normals = meshGroup.Normals.data();
+        rpp::Vector3* normals = meshGroup.Normals.data();
 
         // copy all normals; at this point it's not important if they are indexed or not
         for (int i = 0; i < numNormals; ++i)
@@ -232,7 +234,7 @@ namespace Nano
         // eByPolygonVertex There will be one mapping coordinate for each vertex, 
         // for every polygon of which it is a part. This means that a vertex will 
         // have as many mapping coordinates as polygons of which it is a part.
-        if (mapMode == FbxLayerElement::eByPolygonVertex)
+        if (mapMode == fbx::FbxLayerElement::eByPolygonVertex)
         {
             meshGroup.NormalsMapping = MapMode::PerFaceVertex;
 
@@ -247,7 +249,7 @@ namespace Nano
                 }
             }
         }
-        else if (mapMode == FbxLayerElement::eByControlPoint) // each mesh vertex has a single normal (best case)
+        else if (mapMode == fbx::FbxLayerElement::eByControlPoint) // each mesh vertex has a single normal (best case)
         {
             meshGroup.NormalsMapping = MapMode::PerVertex;
 
@@ -259,7 +261,7 @@ namespace Nano
                     vd.n = indices ? indices[vertexId] : vertexId; // indexed by VertexId OR same as VertexId
                 }
         }
-        else if (mapMode == FbxLayerElement::eByPolygon) // each polygon has a single normal, OK case, but not ideal
+        else if (mapMode == fbx::FbxLayerElement::eByPolygon) // each polygon has a single normal, OK case, but not ideal
         {
             meshGroup.NormalsMapping = MapMode::PerFace;
 
@@ -274,21 +276,21 @@ namespace Nano
     }
 
     static void LoadCoords(MeshGroup& meshGroup, 
-        FbxGeometryElementUV* elementUVs, 
-        const vector<int>& oldIndices)
+        fbx::FbxGeometryElementUV* elementUVs, 
+        const std::vector<int>& oldIndices)
     {
-        FbxLayerElement::EMappingMode mapMode = elementUVs->GetMappingMode();
-        Assert(mapMode == FbxLayerElement::eByPolygonVertex, "Only ByPolygonVertex mapping is supported");
+        fbx::FbxLayerElement::EMappingMode mapMode = elementUVs->GetMappingMode();
+        Assert(mapMode == fbx::FbxLayerElement::eByPolygonVertex, "Only ByPolygonVertex mapping is supported");
 
-        FbxReadLock<FbxVector2> uvsLock   {elementUVs->GetDirectArray()};
+        FbxReadLock<fbx::FbxVector2> uvsLock   {elementUVs->GetDirectArray()};
         FbxReadLock<int>        indexLock {elementUVs->GetIndexArray()};
-        const FbxVector2* fbxUVs  = uvsLock.data;
+        const fbx::FbxVector2* fbxUVs  = uvsLock.data;
         const int*        indices = indexLock.data; // if != null, UVs are indexed
 
         const int numCoords = uvsLock.count;
         const int maxCoords = indices ? indexLock.count : numCoords;
         meshGroup.Coords.resize(numCoords);
-        Vector2* coords = meshGroup.Coords.data();
+        rpp::Vector2* coords = meshGroup.Coords.data();
 
         for (int i = 0; i < numCoords; ++i)
         {
@@ -302,7 +304,7 @@ namespace Nano
         // each polygon vertex can have multiple UV coords,
         // this allows multiple UV shells, so UV-s aren't forced to be contiguous
         // if indices != null, then most of these UV-s coords will be shared
-        if (mapMode == FbxLayerElement::eByPolygonVertex)
+        if (mapMode == fbx::FbxLayerElement::eByPolygonVertex)
         {
             meshGroup.CoordsMapping = MapMode::PerFaceVertex;
 
@@ -317,7 +319,7 @@ namespace Nano
                 }
             }
         }
-        else if (mapMode == FbxLayerElement::eByControlPoint)
+        else if (mapMode == fbx::FbxLayerElement::eByControlPoint)
         {
             meshGroup.CoordsMapping = MapMode::PerVertex;
 
@@ -333,19 +335,19 @@ namespace Nano
     }
 
     static void LoadColors(MeshGroup& meshGroup, 
-        FbxGeometryElementVertexColor* elementColors, 
-        const vector<int>& oldIndices)
+        fbx::FbxGeometryElementVertexColor* elementColors, 
+        const std::vector<int>& oldIndices)
     {
-        FbxLayerElement::EMappingMode mapMode = elementColors->GetMappingMode();
-        FbxReadLock<FbxColor> colorsLock {elementColors->GetDirectArray()};
+        fbx::FbxLayerElement::EMappingMode mapMode = elementColors->GetMappingMode();
+        FbxReadLock<fbx::FbxColor> colorsLock {elementColors->GetDirectArray()};
         FbxReadLock<int>      indexLock  {elementColors->GetIndexArray()};
-        const FbxColor* fbxColors = colorsLock.data;
+        const fbx::FbxColor* fbxColors = colorsLock.data;
         const int*      indices   = indexLock.data; // if != null, colors are indexed
 
         const int numColors = colorsLock.count;
         const int maxColors = indices ? indexLock.count : numColors;
         meshGroup.Colors.resize(numColors);
-        Vector3* colors = meshGroup.Colors.data();
+        rpp::Vector3* colors = meshGroup.Colors.data();
 
         for (int i = 0; i < numColors; ++i)
         {
@@ -360,7 +362,7 @@ namespace Nano
         // with eByPolygonVertex, each polygon vertex can have multiple colors,
         // this allows full face coloring with no falloff blending with neighboring faces
         // if indices != null, then most of these colors will be shared
-        if (mapMode == FbxLayerElement::eByPolygonVertex)
+        if (mapMode == fbx::FbxLayerElement::eByPolygonVertex)
         {
             meshGroup.ColorMapping = MapMode::PerFaceVertex;
 
@@ -375,7 +377,7 @@ namespace Nano
                 }
             }
         }
-        else if (mapMode == FbxLayerElement::eByControlPoint)
+        else if (mapMode == fbx::FbxLayerElement::eByControlPoint)
         {
             meshGroup.ColorMapping = MapMode::PerVertex;
 
@@ -383,7 +385,7 @@ namespace Nano
                 for (VertexDescr& vd : faces[faceId])
                     vd.c = indices ? indices[vd.v] : vd.v; // indexed separately OR same as VertexId
         }
-        else if (mapMode == FbxLayerElement::eByPolygon)
+        else if (mapMode == fbx::FbxLayerElement::eByPolygon)
         {
             meshGroup.ColorMapping = MapMode::PerFace;
 
@@ -394,19 +396,19 @@ namespace Nano
         }
     }
 
-    static void RecurseSkeleton(Mesh& mesh, FbxNode* node, int parentIndex, int& boneIndex)
+    static void RecurseSkeleton(Mesh& mesh, fbx::FbxNode* node, int parentIndex, int& boneIndex)
     {
         for (int i = node->GetChildCount() - 1; i >= 0; --i)
         {
-            FbxNode* child = node->GetChild(i);
+            fbx::FbxNode* child = node->GetChild(i);
             MeshBone& bone = rpp::emplace_back(mesh.Bones);
             bone.BoneIndex = boneIndex;
             bone.ParentIndex = parentIndex;
             if (auto* name = child->GetName())
                 bone.Name = name;
-            FbxDouble3 offset = node->LclTranslation.Get();
-            FbxDouble3 rot    = node->LclRotation.Get();   // @note Euler XYZ Degrees
-            FbxDouble3 scale  = node->LclScaling.Get();
+            fbx::FbxDouble3 offset = node->LclTranslation.Get();
+            fbx::FbxDouble3 rot    = node->LclRotation.Get();   // @note Euler XYZ Degrees
+            fbx::FbxDouble3 scale  = node->LclScaling.Get();
             bone.Pose.Translation = FbxToOpenGL(offset);
             bone.Pose.Rotation    = FbxToOpenGL(rot);
             bone.Pose.Scale       = FbxToOpenGL(scale);
@@ -414,7 +416,7 @@ namespace Nano
             RecurseSkeleton(mesh, child, boneIndex, boneIndex);
         }
     }
-    static void CreateSkeleton(Mesh& mesh, FbxNode* root)
+    static void CreateSkeleton(Mesh& mesh, fbx::FbxNode* root)
     {
         int boneIndex = 0;
         RecurseSkeleton(mesh, root, -1, boneIndex);
@@ -425,11 +427,11 @@ namespace Nano
         
     }
 
-    static void SetTransformGL(MeshGroup& group, FbxNode* node)
+    static void SetTransformGL(MeshGroup& group, fbx::FbxNode* node)
     {
-        FbxDouble3 offset = node->LclTranslation.Get();
-        FbxDouble3 rot    = node->LclRotation.Get();   // @note Euler XYZ Degrees
-        FbxDouble3 scale  = node->LclScaling.Get();
+        fbx::FbxDouble3 offset = node->LclTranslation.Get();
+        fbx::FbxDouble3 rot    = node->LclRotation.Get();   // @note Euler XYZ Degrees
+        fbx::FbxDouble3 scale  = node->LclScaling.Get();
         group.Offset   = FbxToOpenGL(offset);
         group.Rotation = FbxToOpenGL(rot);
         group.Scale    = FbxToOpenGL(scale);
@@ -437,11 +439,11 @@ namespace Nano
     
     bool Mesh::IsFBXSupported() noexcept { return true; }
 
-    bool Mesh::LoadFBX(strview meshPath, Options opt)
+    bool Mesh::LoadFBX(rpp::strview meshPath, Options opt)
     {
         Clear();
         InitFbxManager();
-        FbxPtr<FbxImporter> importer = FbxImporter::Create(SdkManager, "");
+        FbxPtr<fbx::FbxImporter> importer = fbx::FbxImporter::Create(SdkManager, "");
         //int format = SdkManager->GetIOPluginRegistry()->FindReaderIDByExtension("fbx");
         int format = -1;
 
@@ -449,13 +451,13 @@ namespace Nano
             NanoErr(opt, "Failed to open file '%s': %s\n", meshPath, importer->GetStatus().GetErrorString());
         }
 
-        FbxPtr<FbxScene> scene = FbxScene::Create(SdkManager, "scene");
+        FbxPtr<fbx::FbxScene> scene = fbx::FbxScene::Create(SdkManager, "scene");
         if (!importer->Import(scene.get())) {
             NanoErr(opt, "Failed to load FBX '%s': %s\n", meshPath, importer->GetStatus().GetErrorString());
         }
         importer.reset();
 
-        if (FbxNode* root = scene->GetRootNode())
+        if (fbx::FbxNode* root = scene->GetRootNode())
         {
             Name = file_name(meshPath);
             if (opt & Options::Log) {
@@ -463,28 +465,28 @@ namespace Nano
             }
 
             // @note ConvertScene only affects the global/local matrices, it doesn't modify the vertices themselves
-            FbxAxisSystem sceneAxisSys = scene->GetGlobalSettings().GetAxisSystem();
+            fbx::FbxAxisSystem sceneAxisSys = scene->GetGlobalSettings().GetAxisSystem();
             //if (sceneAxisSys != FbxAxisSystem{ FbxAxisSystem::eOpenGL })
             //    LogWarning("Invalid AxisSystem! Please Re-Export the FBX in OpenGL Axis System");
 
             int numChildren = root->GetChildCount();
             for (int childIndex = 0; childIndex < numChildren; ++childIndex)
             {
-                FbxNode* child = root->GetChild(childIndex);
-                FbxNodeAttribute* attribute = child->GetNodeAttribute();
+                fbx::FbxNode* child = root->GetChild(childIndex);
+                fbx::FbxNodeAttribute* attribute = child->GetNodeAttribute();
  
-                if (FbxMesh* mesh = child->GetMesh())
+                if (fbx::FbxMesh* mesh = child->GetMesh())
                 {
                     MeshGroup& group = CreateGroup(child->GetName());
                     SetTransformGL(group, child);
 
-                    vector<int> oldIndices;
+                    std::vector<int> oldIndices;
                     LoadVerticesAndFaces(group, mesh, oldIndices);
                     if (auto* normals = mesh->GetElementNormal())      LoadNormals(group, normals, oldIndices);
                     if (auto* uvs     = mesh->GetElementUV())          LoadCoords(group,  uvs,     oldIndices);
                     if (auto* colors  = mesh->GetElementVertexColor()) LoadColors(group,  colors,  oldIndices);
                 }
-                else if (attribute && attribute->GetAttributeType() == FbxNodeAttribute::eSkeleton)
+                else if (attribute && attribute->GetAttributeType() == fbx::FbxNodeAttribute::eSkeleton)
                 {
                     continue; // ignore skeleton nodes at this point
                 }
@@ -505,12 +507,12 @@ namespace Nano
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
-    static void SaveVertices(const MeshGroup& group, FbxMesh* mesh)
+    static void SaveVertices(const MeshGroup& group, fbx::FbxMesh* mesh)
     {
         int numVertices = group.NumVerts();
         mesh->InitControlPoints(numVertices);
-        FbxVector4* points = mesh->GetControlPoints();
-        const Vector3* vertices = group.Verts.data();
+        fbx::FbxVector4* points = mesh->GetControlPoints();
+        const rpp::Vector3* vertices = group.Verts.data();
 
         for (int i = 0; i < numVertices; ++i)
         {
@@ -518,7 +520,7 @@ namespace Nano
         }
     }
 
-    static void SaveNormals(const MeshGroup& group, FbxMesh* mesh)
+    static void SaveNormals(const MeshGroup& group, fbx::FbxMesh* mesh)
     {
         if (const int numNormals = group.NumNormals())
         {
@@ -527,12 +529,12 @@ namespace Nano
             Assert((group.NormalsMapping == MapMode::PerVertex || group.NormalsMapping == MapMode::PerFaceVertex), 
                     "Only per-vertex or per-face-vertex normals are supported");
 
-            FbxGeometryElementNormal* elementNormal = mesh->CreateElementNormal();
+            fbx::FbxGeometryElementNormal* elementNormal = mesh->CreateElementNormal();
             elementNormal->SetMappingMode(toFbxMapping(group.NormalsMapping));
             elementNormal->SetReferenceMode(toFbxReference(group.NormalsMapping));
 
             auto& elements = elementNormal->GetDirectArray();
-            const Vector3* normals = group.Normals.data();
+            const rpp::Vector3* normals = group.Normals.data();
 
             for (int i = 0; i < numNormals; ++i)
             {
@@ -549,23 +551,23 @@ namespace Nano
         }
     }
 
-    static void SaveCoords(const MeshGroup& group, FbxMesh* mesh)
+    static void SaveCoords(const MeshGroup& group, fbx::FbxMesh* mesh)
     {
         if (const int numCoords = group.NumCoords())
         {
             Assert((group.CoordsMapping == MapMode::PerVertex || group.CoordsMapping == MapMode::PerFaceVertex), 
                     "Only per-vertex or per-face-vertex UV coords are supported");
 
-            FbxGeometryElementUV* elementUVs = mesh->CreateElementUV("DiffuseUV");
+            fbx::FbxGeometryElementUV* elementUVs = mesh->CreateElementUV("DiffuseUV");
             elementUVs->SetMappingMode(toFbxMapping(group.CoordsMapping));
             elementUVs->SetReferenceMode(toFbxReference(group.CoordsMapping));
 
             auto& elements = elementUVs->GetDirectArray();
-            const Vector2* uvs = group.Coords.data();
+            const rpp::Vector2* uvs = group.Coords.data();
 
             for (int i = 0; i < numCoords; ++i)
             {
-                elements.Add(FbxVector2{ uvs[i].x, uvs[i].y });
+                elements.Add(fbx::FbxVector2{ uvs[i].x, uvs[i].y });
             }
 
             if (group.CoordsMapping == MapMode::PerFaceVertex)
@@ -578,22 +580,22 @@ namespace Nano
         }
     }
 
-    static void SaveColors(const MeshGroup& group, FbxMesh* mesh)
+    static void SaveColors(const MeshGroup& group, fbx::FbxMesh* mesh)
     {
         if (const int numColors = group.NumColors())
         {
             Assert((group.ColorMapping == MapMode::PerVertex || group.ColorMapping == MapMode::PerFaceVertex), 
                 "Only per-vertex or per-face-vertex colors are supported");
 
-            FbxGeometryElementVertexColor* elementColors = mesh->CreateElementVertexColor();
+            fbx::FbxGeometryElementVertexColor* elementColors = mesh->CreateElementVertexColor();
             elementColors->SetMappingMode(toFbxMapping(group.ColorMapping));
             elementColors->SetReferenceMode(toFbxReference(group.ColorMapping));
 
             auto& elements = elementColors->GetDirectArray();
-            const Vector3* colors = group.Colors.data();
+            const rpp::Vector3* colors = group.Colors.data();
             for (int i = 0; i < numColors; ++i)
             {
-                elements.Add(FbxColor{ colors[i].x, colors[i].y, colors[i].z });
+                elements.Add(fbx::FbxColor{ colors[i].x, colors[i].y, colors[i].z });
             }
 
             if (group.ColorMapping == MapMode::PerFaceVertex)
@@ -606,7 +608,7 @@ namespace Nano
         }
     }
 
-    static void CreatePolygons(const MeshGroup& group, FbxMesh* mesh)
+    static void CreatePolygons(const MeshGroup& group, fbx::FbxMesh* mesh)
     {
         for (const Triangle& face : group)
         {
@@ -620,18 +622,24 @@ namespace Nano
         mesh->BuildMeshEdgeArray();
     }
 
-    using Materials = std::unordered_map<Material*, FbxSurfacePhong*>;
+    using Materials = std::unordered_map<Material*, fbx::FbxSurfacePhong*>;
 
-    static FbxFileTexture* NewTexture(FbxScene* scene, const string& texture, 
-                                      const char* name, FbxTexture::ETextureUse usage = FbxTexture::eStandard)
+    static fbx::FbxFileTexture* NewTexture(fbx::FbxScene* scene, const std::string& texture, 
+                                           const char* name,
+                                           fbx::FbxTexture::ETextureUse usage = fbx::FbxTexture::eStandard)
     {
         if (texture.empty())
             return nullptr;
-        FbxFileTexture* tex = FbxFileTexture::Create(scene, name);
-        tex->SetFileName(texture.c_str());
+        fbx::FbxFileTexture* tex = fbx::FbxFileTexture::Create(scene, name);
+        if (!tex->SetFileName(texture.c_str())) {
+            LogWarning("FbxFileTexture::SetFileName failed: %s", texture);
+        }
+        if (!tex->SetRelativeFileName(texture.c_str())) {
+            LogWarning("FbxFileTexture::SetFileName failed: %s", texture);
+        }
         tex->SetTextureUse(usage);
-        tex->SetMappingType(FbxTexture::eUV);
-        tex->SetMaterialUse(FbxFileTexture::eModelMaterial);
+        tex->SetMappingType(fbx::FbxTexture::eUV);
+        tex->SetMaterialUse(fbx::FbxFileTexture::eModelMaterial);
         tex->SetSwapUV(false);
         tex->SetTranslation(0.0, 0.0);
         tex->SetScale(1.0, 1.0);
@@ -639,22 +647,22 @@ namespace Nano
         return tex;
     }
 
-    static Materials CreateMaterials(FbxScene* scene, const vector<MeshGroup>& groups)
+    static Materials CreateMaterials(fbx::FbxScene* scene, const std::vector<MeshGroup>& groups)
     {
-        Materials materials { {nullptr, nullptr} };
-        for (const MeshGroup& g : groups)
+        Nano::Materials materials { {nullptr, nullptr} };
+        for (const Nano::MeshGroup& g : groups)
         {
             if (g.Mat)
             {
                 Material& m = *g.Mat;
-                FbxSurfacePhong* mat = FbxSurfacePhong::Create(scene, m.Name.data());
+                fbx::FbxSurfacePhong* mat = fbx::FbxSurfacePhong::Create(scene, m.Name.data());
                 materials[&m] = mat;
                 mat->Ambient.Set(ToFbxColor3(m.AmbientColor));
                 mat->Diffuse.Set(ToFbxColor3(m.DiffuseColor));
                 mat->Specular.Set(ToFbxColor3(m.SpecularColor));
                 mat->SpecularFactor.Set((double)m.Specular);
                 mat->TransparencyFactor.Set((double)m.Alpha);
-                if (!m.EmissiveColor.almostEqual(Color3::Black()))
+                if (!m.EmissiveColor.almostEqual(rpp::Color3::Black()))
                     mat->Emissive.Set(ToFbxColor3(m.EmissiveColor));
 
                 if (auto* diffuse = NewTexture(scene, m.DiffusePath, "Diffuse Texture"))
@@ -663,7 +671,7 @@ namespace Nano
                     mat->TransparentColor.ConnectSrcObject(alpha);
                 if (auto* specular = NewTexture(scene, m.SpecularPath, "Specular Texture"))
                     mat->Specular.ConnectSrcObject(specular);
-                if (auto* normal = NewTexture(scene, m.NormalPath, "Normal Texture", FbxTexture::eBumpNormalMap))
+                if (auto* normal = NewTexture(scene, m.NormalPath, "Normal Texture", fbx::FbxTexture::eBumpNormalMap))
                     mat->NormalMap.ConnectSrcObject(normal);
                 if (auto* emissive = NewTexture(scene, m.EmissivePath, "Emissive Texture")) {
                     mat->Emissive.ConnectSrcObject(emissive);
@@ -674,23 +682,23 @@ namespace Nano
         return materials;
     }
 
-    static void WriteSkeleton(const Mesh& mesh, FbxScene* scene, FbxNode* root)
+    static void WriteSkeleton(const Nano::Mesh& mesh, fbx::FbxScene* scene, fbx::FbxNode* root)
     {
         size_t count = mesh.Bones.size();
         if (count == 0)
             return;
 
-        vector<FbxNode*> skeleton(count);
+        std::vector<fbx::FbxNode*> skeleton(count);
         for (size_t i = 0; i < count; ++i)
         {
-            const MeshBone& bone = mesh.Bones[i];
+            const Nano::MeshBone& bone = mesh.Bones[i];
             bool isRoot = bone.ParentIndex < 0;
-            FbxNode* parentBone = isRoot ? root : skeleton[bone.ParentIndex];
+            fbx::FbxNode* parentBone = isRoot ? root : skeleton[bone.ParentIndex];
 
-            FbxNode* thisBone = FbxNode::Create(scene, bone.Name.c_str());
+            fbx::FbxNode* thisBone = fbx::FbxNode::Create(scene, bone.Name.c_str());
             skeleton[i] = thisBone;
-            FbxSkeleton* fbxSkeleton = FbxSkeleton::Create(scene, bone.Name.c_str());
-            fbxSkeleton->SetSkeletonType(isRoot ? FbxSkeleton::eRoot : FbxSkeleton::eLimbNode);
+            fbx::FbxSkeleton* fbxSkeleton = fbx::FbxSkeleton::Create(scene, bone.Name.c_str());
+            fbxSkeleton->SetSkeletonType(isRoot ? fbx::FbxSkeleton::eRoot : fbx::FbxSkeleton::eLimbNode);
             
             thisBone->LclTranslation.Set(GLToFbxDouble3(bone.Pose.Translation));
             thisBone->LclRotation.Set(GLToFbxDouble3(bone.Pose.Rotation));
@@ -700,7 +708,7 @@ namespace Nano
         }
     }
 
-    bool Mesh::SaveAsFBX(strview meshPath, Options opt) const
+    bool Mesh::SaveAsFBX(rpp::strview meshPath, Options opt) const
     {
         if (!NumGroups()) {
             NanoErr(opt, "No mesh groups to export to '%s'\n", meshPath);
@@ -710,10 +718,10 @@ namespace Nano
         }
 
         InitFbxManager();
-        FbxPtr<FbxExporter> exporter = nullptr;
+        FbxPtr<fbx::FbxExporter> exporter = nullptr;
         {
             std::lock_guard<std::mutex> lock{SdkMutex};
-            exporter = FbxExporter::Create(SdkManager, "");
+            exporter = fbx::FbxExporter::Create(SdkManager, "");
         }
 
         //int format = SdkManager->GetIOPluginRegistry()->FindWriterIDByDescription("FBX 6.0 binary (*.fbx)");
@@ -721,24 +729,24 @@ namespace Nano
         if (!exporter->Initialize(meshPath.to_cstr(), format, IOSettings)) {
             NanoErr(opt, "Failed to open file '%s' for writing: %s\n", meshPath, exporter->GetStatus().GetErrorString());
         }
-        if (!exporter->SetFileExportVersion("FBX201400", FbxSceneRenamer::eNone)) {
+        if (!exporter->SetFileExportVersion("FBX201400", fbx::FbxSceneRenamer::eNone)) {
             NanoErr(opt, "Failed to set FBX export version: %s\n", exporter->GetStatus().GetErrorString());
         }
 
-        FbxPtr<FbxScene> scene = nullptr;
+        FbxPtr<fbx::FbxScene> scene = nullptr;
         {
-            string sceneName = rpp::file_name(meshPath).to_string();
+            std::string sceneName = rpp::file_name(meshPath).to_string();
             std::lock_guard<std::mutex> lock{SdkMutex};
-            scene = FbxScene::Create(SdkManager, sceneName.c_str());
+            scene = fbx::FbxScene::Create(SdkManager, sceneName.c_str());
         }
 
-        FbxAxisSystem axisSys = { FbxAxisSystem::eOpenGL };
+        fbx::FbxAxisSystem axisSys = { fbx::FbxAxisSystem::eOpenGL };
         scene->GetGlobalSettings().SetAxisSystem(axisSys);
-        scene->GetGlobalSettings().SetSystemUnit(FbxSystemUnit(100.0/*meters*/));
+        scene->GetGlobalSettings().SetSystemUnit(fbx::FbxSystemUnit(100.0/*meters*/));
 
-        Materials materials = CreateMaterials(scene.get(), Groups);
+        Nano::Materials materials = CreateMaterials(scene.get(), Groups);
 
-        if (FbxNode* root = scene->GetRootNode())
+        if (fbx::FbxNode* root = scene->GetRootNode())
         {
             if (opt & Options::Log) {
                 LogInfo("Save %-33s  %5d verts  %5d tris", 
@@ -747,21 +755,21 @@ namespace Nano
             for (const MeshGroup& group : Groups)
             {
                 group.Print();
-                FbxMesh* mesh = FbxMesh::Create(scene.get(), "");
+                fbx::FbxMesh* mesh = fbx::FbxMesh::Create(scene.get(), "");
                 SaveVertices(group, mesh);
                 SaveNormals(group, mesh);
                 SaveCoords(group, mesh);
                 SaveColors(group, mesh);
                 CreatePolygons(group, mesh);
 
-                FbxNode* node = FbxNode::Create(scene.get(), group.Name.c_str());
+                fbx::FbxNode* node = fbx::FbxNode::Create(scene.get(), group.Name.c_str());
 
                 if (auto* material = materials[group.Mat.get()])
                     node->AddMaterial(material);
 
-                FbxDouble3 pos   = GLToFbxDouble3(group.Offset);
-                FbxDouble3 rot   = GLToFbxDouble3(group.Rotation);
-                FbxDouble3 scale = GLToFbxDouble3(group.Scale);
+                fbx::FbxDouble3 pos   = GLToFbxDouble3(group.Offset);
+                fbx::FbxDouble3 rot   = GLToFbxDouble3(group.Rotation);
+                fbx::FbxDouble3 scale = GLToFbxDouble3(group.Scale);
                 node->LclTranslation.Set(pos);
                 node->LclRotation.Set(rot);
                 node->LclScaling.Set(scale);
@@ -784,11 +792,11 @@ namespace Nano
 namespace Nano
 {
     bool Mesh::IsFBXSupported() noexcept { return false; }
-    bool Mesh::LoadFBX(strview meshPath, Options opt)
+    bool Mesh::LoadFBX(rpp::strview meshPath, Options opt)
     {
         NanoErr(opt, "FBX not supported in this build!\n%s", meshPath);
     }
-    bool Mesh::SaveAsFBX(strview meshPath, Options opt) const
+    bool Mesh::SaveAsFBX(rpp::strview meshPath, Options opt) const
     {
         NanoErr(opt, "FBX not supported in this build!\n%s", meshPath);
     }

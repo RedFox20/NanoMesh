@@ -2,7 +2,6 @@
 #include <rpp/file_io.h>
 #include <rpp/debugging.h>
 
-using std::make_unique;
 using namespace Nano;
 ////////////////////////////////////////////////////////////////////////////////////
 
@@ -55,7 +54,7 @@ NANOMESH_API void PrintOptions(Nano::Options o)
     LogInfo("Nano::Options: %s", to_string(o));
 }
 
-NanoMesh::NanoMesh(strview path, Nano::Options options)
+NanoMesh::NanoMesh(rpp::strview path, Nano::Options options)
     : Data{ path, options }
 {
     Groups.resize(Data.NumGroups());
@@ -73,20 +72,20 @@ NanoMeshGroup* NanoMesh::GetGroup(int groupId)
     if (auto* groupMesh = Groups[groupId].get())
         return groupMesh;
 
-    Groups[groupId] = make_unique<NanoMeshGroup>(Data, groupId);
+    Groups[groupId] = std::make_unique<NanoMeshGroup>(Data, groupId);
     return Groups[groupId].get();
 }
 
-NanoMeshGroup* NanoMesh::AddGroup(string groupname)
+NanoMeshGroup* NanoMesh::AddGroup(std::string groupname)
 {
     MeshGroup& group = Data.CreateGroup(groupname);
-    Groups.emplace_back(make_unique<NanoMeshGroup>(Data, group));
+    Groups.emplace_back(std::make_unique<NanoMeshGroup>(Data, group));
     return Groups.back().get();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-static string NanoError;
+static std::string NanoError;
 NANOMESH_CAPI const char* NanoGetLastError()
 {
     return NanoError.c_str();
@@ -162,10 +161,10 @@ NANOMESH_CAPI void NanoMeshGroupSetMaterial(
                 const char* specularPath,
                 const char* normalPath,
                 const char* emissivePath,
-                Color3 ambientColor, 
-                Color3 diffuseColor, 
-                Color3 specularColor, 
-                Color3 emissiveColor, 
+                rpp::Color3 ambientColor, 
+                rpp::Color3 diffuseColor, 
+                rpp::Color3 specularColor, 
+                rpp::Color3 emissiveColor, 
                 float specular, 
                 float alpha)
 {

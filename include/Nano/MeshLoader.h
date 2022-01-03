@@ -83,7 +83,7 @@ struct NANOMESH_API NanoMeshGroup
     // not mapped to C#
     Nano::Mesh&       Owner;
     Nano::MeshGroup&  Group;
-    Nano::vector<int> IndexData;
+    std::vector<int> IndexData;
 
     explicit NanoMeshGroup(Nano::Mesh& mesh, Nano::MeshGroup& group);
     explicit NanoMeshGroup(Nano::Mesh& mesh, int groupId);

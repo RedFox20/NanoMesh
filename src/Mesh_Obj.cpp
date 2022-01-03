@@ -8,40 +8,36 @@
 
 namespace Nano
 {
-    using std::make_shared;
-    using rpp::file;
-    using rpp::string_buffer;
-    using rpp::buffer_line_parser;
     using namespace rpp::literals;
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
-    static bool SaveMaterials(const Mesh& mesh, strview materialSavePath, strview fileName, Options opt)
+    static bool SaveMaterials(const Mesh& mesh, rpp::strview materialSavePath, rpp::strview fileName, Options opt)
     {
         if (mesh.Groups.empty() || !mesh.HasAnyMaterials())
             return false;
 
-        vector<Material*> written;
-        shared_ptr<Material> defaultMat;
+        std::vector<Material*> written;
+        std::shared_ptr<Material> defaultMat;
         auto getDefaultMat = [&]
         {
             if (defaultMat)
                 return defaultMat;
             defaultMat = mesh.FindMaterial("default"_sv);
             if (!defaultMat) {
-                defaultMat = make_shared<Material>();
+                defaultMat = std::make_shared<Material>();
                 defaultMat->Name = "default"s;
             }
             return defaultMat;
         };
 
-        file f { materialSavePath, file::CREATENEW };
+        rpp::file f { materialSavePath, rpp::file::CREATENEW };
         if (!f) {
             NanoErr(opt, "Failed to create file: %s", materialSavePath);
         }
-        string_buffer sb;
-        auto writeColor = [&](strview id, Color3 color) { sb.writeln(id, color.r, color.g, color.b); };
-        auto writeStr   = [&](strview id, strview str)  { if (str) sb.writeln(id, str); };
-        auto writeFloat = [&](strview id, float value)  { if (value != 1.0f) sb.writeln(id, value); };
+        rpp::string_buffer sb;
+        auto writeColor = [&](rpp::strview id, rpp::Color3 color) { sb.writeln(id, color.r, color.g, color.b); };
+        auto writeStr   = [&](rpp::strview id, rpp::strview str)  { if (str) sb.writeln(id, str); };
+        auto writeFloat = [&](rpp::strview id, float value)       { if (value != 1.0f) sb.writeln(id, value); };
 
         sb.writeln("#", fileName, "MTL library");
         for (const MeshGroup& group : mesh.Groups)
@@ -76,30 +72,30 @@ namespace Nano
         return true;
     }
 
-    static vector<shared_ptr<Material>> LoadMaterials(strview matlibFile)
+    static std::vector<std::shared_ptr<Material>> LoadMaterials(rpp::strview matlibFile)
     {
-        vector<shared_ptr<Material>> materials;
+        std::vector<std::shared_ptr<Material>> materials;
 
-        if (auto parser = buffer_line_parser::from_file(matlibFile))
+        if (auto parser = rpp::buffer_line_parser::from_file(matlibFile))
         {
-            string matlibFolder = folder_path(matlibFile);
+            std::string matlibFolder = folder_path(matlibFile);
             Material* mat = nullptr;
-            strview line;
+            rpp::strview line;
             while (parser.read_line(line))
             {
-                strview id = line.next(' ');
+                rpp::strview id = line.next(' ');
                 if (id == "newmtl")
                 {
-                    materials.push_back(make_shared<Material>());
+                    materials.push_back(std::make_shared<Material>());
                     mat = materials.back().get();
                     mat->Name = line.trim();
                 }
                 else if (mat)
                 {
-                    if      (id == "Ka") mat->AmbientColor  = Color3::parseColor(line);
-                    else if (id == "Kd") mat->DiffuseColor  = Color3::parseColor(line);
-                    else if (id == "Ks") mat->SpecularColor = Color3::parseColor(line);
-                    else if (id == "Ke") mat->EmissiveColor = Color3::parseColor(line);
+                    if      (id == "Ka") mat->AmbientColor  = rpp::Color3::parseColor(line);
+                    else if (id == "Kd") mat->DiffuseColor  = rpp::Color3::parseColor(line);
+                    else if (id == "Ks") mat->SpecularColor = rpp::Color3::parseColor(line);
+                    else if (id == "Ke") mat->EmissiveColor = rpp::Color3::parseColor(line);
                     else if (id == "Ns") mat->Specular = line.to_float() / 1000.0f; // Ns is [0, 1000], normalize to [0, 1]
                     else if (id == "d")  mat->Alpha    = line.to_float();
                     else if (id == "Tr") mat->Alpha    = 1.0f - line.to_float();
@@ -121,25 +117,25 @@ namespace Nano
     struct ObjLoader
     {
         Mesh& mesh;
-        strview meshPath;
+        rpp::strview meshPath;
         Options options;
-        buffer_line_parser parser;
+        rpp::buffer_line_parser parser;
         size_t numVerts = 0, numCoords = 0, numNormals = 0, numColors = 0, numFaces = 0;
-        vector<shared_ptr<Material>> materials;
+        std::vector<std::shared_ptr<Material>> materials;
         MeshGroup* group = nullptr;
         bool triedDefaultMat = false;
 
-        Vector3* vertsData   = nullptr;
-        Vector2* coordsData  = nullptr;
-        Vector3* normalsData = nullptr;
-        Color3*  colorsData  = nullptr;
+        rpp::Vector3* vertsData   = nullptr;
+        rpp::Vector2* coordsData  = nullptr;
+        rpp::Vector3* normalsData = nullptr;
+        rpp::Color3*  colorsData  = nullptr;
 
         void* dataBuffer = nullptr;
         size_t bufferSize = 0;
 
-        explicit ObjLoader(Mesh& mesh, strview meshPath, Options options)
+        explicit ObjLoader(Mesh& mesh, rpp::strview meshPath, Options options)
             : mesh{ mesh }, meshPath{ meshPath }, options{ options }, 
-              parser{ buffer_line_parser::from_file(meshPath) }
+              parser{ rpp::buffer_line_parser::from_file(meshPath) }
         {
         }
 
@@ -150,7 +146,7 @@ namespace Nano
 
         bool ProbeStats()
         {
-            strview line;
+            rpp::strview line;
             while (parser.read_line(line))
             {
                 char c = line[0];
@@ -173,10 +169,10 @@ namespace Nano
             }
 
             // megaBuffer strategy - one big allocation instead of a dozen small ones
-            bufferSize = numVerts    * sizeof(Vector3)
-                        + numCoords  * sizeof(Vector2)
-                        + numNormals * sizeof(Vector3)
-                        + numVerts   * sizeof(Color3);
+            bufferSize = numVerts    * sizeof(rpp::Vector3)
+                        + numCoords  * sizeof(rpp::Vector2)
+                        + numNormals * sizeof(rpp::Vector3)
+                        + numVerts   * sizeof(rpp::Color3);
             return true;
         }
 
@@ -193,17 +189,17 @@ namespace Nano
         {
             dataBuffer = allocated;
             pool_helper pool = { allocated };
-            vertsData   = pool.next<Vector3>(numVerts);
-            coordsData  = pool.next<Vector2>(numCoords);
-            normalsData = pool.next<Vector3>(numNormals);
-            colorsData  = pool.next<Color3>(numVerts);
+            vertsData   = pool.next<rpp::Vector3>(numVerts);
+            coordsData  = pool.next<rpp::Vector2>(numCoords);
+            normalsData = pool.next<rpp::Vector3>(numNormals);
+            colorsData  = pool.next<rpp::Color3>(numVerts);
         }
 
-        shared_ptr<Material> FindMat(strview matName)
+        std::shared_ptr<Material> FindMat(rpp::strview matName)
         {
             if (materials.empty() && !triedDefaultMat) {
                 triedDefaultMat = true;
-                string defaultMat = file_replace_ext(meshPath, "mtl");
+                std::string defaultMat = file_replace_ext(meshPath, "mtl");
                 materials = LoadMaterials(defaultMat);
             }
             for (auto& mat : materials)
@@ -221,7 +217,7 @@ namespace Nano
         {
             int vertexId = 0, coordId = 0, normalId = 0, colorId = 0;
 
-            strview line;
+            rpp::strview line;
             while (parser.read_line(line)) // for each line
             {
                 char c = line[0];
@@ -230,19 +226,19 @@ namespace Nano
                     c = line[1];
                     if (c == ' ') { // v 1.0 1.0 1.0
                         line.skip(2); // skip 'v '
-                        Vector3& v = vertsData[vertexId];
+                        rpp::Vector3& v = vertsData[vertexId];
                         line >> v.x >> v.y >> v.z;
 
                         if (!line.empty())
                         {
-                            Vector3 col;
+                            rpp::Vector3 col;
                             line >> col.x >> col.y >> col.z;
                             if (col.sqlength() > 0.001f)
                             {
                                 // for OBJ we always use Per-Vertex color mapping...
                                 // there is simply no other standardised way to do it
                                 if (colorId == 0) {
-                                    memset(colorsData, 0, numVerts*sizeof(Color3));
+                                    memset(colorsData, 0, numVerts*sizeof(rpp::Color3));
                                     numColors = numVerts;
                                 }
                                 ++colorId;
@@ -254,7 +250,7 @@ namespace Nano
                     }
                     if (c == 'n') { // vn 1.0 1.0 1.0
                         line.skip(3); // skip 'vn '
-                        Vector3& n = normalsData[normalId++];
+                        rpp::Vector3& n = normalsData[normalId++];
                         line >> n.x >> n.y >> n.z;
                         // Use this if exporting for Direct3D
                         //n.z = -n.z; // invert Z to convert to lhs coordinates
@@ -262,7 +258,7 @@ namespace Nano
                     }
                     if (c == 't') { // vt 1.0 1.0
                         line.skip(3); // skip 'vt '
-                        Vector2& uv = coordsData[coordId++];
+                        rpp::Vector2& uv = coordsData[coordId++];
                         line >> uv.x >> uv.y;
                         //if (fmt == TXC_Direct3DTexCoords) // Use this if exporting for Direct3D
                         //    c.y = 1.0f - c.y; // invert the V coord to convert to lhs coordinates
@@ -279,19 +275,19 @@ namespace Nano
                     line.skip(2); // skip 'f '
                     line.trim_start(' ');
 
-                    auto parseDescr = [&](VertexDescr& vd, strview vertdescr)
+                    auto parseDescr = [&](VertexDescr& vd, rpp::strview vertdescr)
                     {
-                        if (strview v = vertdescr.next('/')) {
+                        if (rpp::strview v = vertdescr.next('/')) {
                             vd.v = v.to_int() - 1;
                             // negative indices, relative to the current maximum vertex position
                             // (-1 references the last vertex defined)
                             if (vd.v < 0) vd.v = vertexId + vd.v + 1; 
                         }
-                        if (strview t = vertdescr.next('/')) {
+                        if (rpp::strview t = vertdescr.next('/')) {
                             vd.t = t.to_int() - 1;
                             if (vd.t < 0) vd.t = coordId + vd.t + 1;
                         }
-                        if (strview n = vertdescr) {
+                        if (rpp::strview n = vertdescr) {
                             vd.n = n.to_int() - 1;
                             if (vd.n < 0) vd.n = normalId + vd.n + 1;
                         }
@@ -304,7 +300,7 @@ namespace Nano
 
                     // when encountering quads or large polygons, we need to triangulate the mesh
                     // by tracking the first vertex descr and forming a fan; this requires convex polys
-                    while (strview vertdescr = line.next(' '))
+                    while (rpp::strview vertdescr = line.next(' '))
                     {
                         // @note According to OBJ spec, face vertices are in CCW order:
                         // 0--3
@@ -329,14 +325,14 @@ namespace Nano
                 else if (c == 'u' && memcmp(line.str, "usemtl", 6) == 0)
                 {
                     line.skip(7); // skip "usemtl "
-                    strview matName = line.next(' ');
+                    rpp::strview matName = line.next(' ');
                     CurrentGroup()->Mat = FindMat(matName);
                 }
                 else if (c == 'm' && memcmp(line.str, "mtllib", 6) == 0)
                 {
                     line.skip(7); // skip "mtllib "
-                    strview matlib = line.next(' ');
-                    string matlibPath = path_combine(folder_path(meshPath), matlib);
+                    rpp::strview matlib = line.next(' ');
+                    std::string matlibPath = path_combine(folder_path(meshPath), matlib);
                     materials = LoadMaterials(matlibPath);
                 }
                 else if (c == 'g')
@@ -351,7 +347,7 @@ namespace Nano
                 else if (c == 'o')
                 {
                     line.skip(2); // skip "o "
-                    mesh.Name = (string)line.next(' ');
+                    mesh.Name = (std::string)line.next(' ');
                 }
             }
         }
@@ -395,7 +391,7 @@ namespace Nano
                 }
             }
 
-            auto copyElements = [](auto& dst, auto* src, const vector<int>& uniqueIndices) {
+            auto copyElements = [](auto& dst, auto* src, const std::vector<int>& uniqueIndices) {
                 dst.reserve(uniqueIndices.size());
                 for (int index : uniqueIndices)
                     dst.push_back(src[index]);
@@ -480,7 +476,7 @@ namespace Nano
         }
     };
 
-    bool Mesh::LoadOBJ(strview meshPath, Options opt)
+    bool Mesh::LoadOBJ(rpp::strview meshPath, Options opt)
     {
         Clear();
 
@@ -522,36 +518,36 @@ namespace Nano
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
-    static vector<Vector3> FlattenColors(const MeshGroup& group)
+    static std::vector<rpp::Vector3> FlattenColors(const MeshGroup& group)
     {
-        vector<Vector3> colors = { group.Verts.size(), Vector3::Zero() };
+        std::vector<rpp::Vector3> colors = { group.Verts.size(), rpp::Vector3::Zero() };
 
         for (const Triangle& face : group)
             for (const VertexDescr& vd : face)
             {
                 if (vd.c == -1) continue;
-                Vector3& dst = colors[vd.v];
-                if (dst == Vector3::Zero() || dst == Vector3::One())
+                rpp::Vector3& dst = colors[vd.v];
+                if (dst == rpp::Vector3::Zero() || dst == rpp::Vector3::One())
                     dst = group.Colors[vd.c];
             }
         return colors;
     }
 
-    bool Mesh::SaveAsOBJ(strview meshPath, Options opt) const
+    bool Mesh::SaveAsOBJ(rpp::strview meshPath, Options opt) const
     {
-        file f { meshPath, file::CREATENEW };
+        rpp::file f { meshPath, rpp::file::CREATENEW };
         if (!f) {
             NanoErr(opt, "Failed to create file: %s", meshPath);
         }
 
-        string_buffer sb;
+        rpp::string_buffer sb;
         // straight to file, #dontcare about perf atm
         if (opt & Options::Log) {
             LogInfo("Save %-33s  %5d verts  %5d tris", 
                 file_nameext(meshPath), TotalVerts(), TotalTris());
         }
-        string matlib = rpp::file_replace_ext(meshPath, "mtl");
-        strview matlibFile = rpp::file_nameext(matlib);
+        std::string matlib = rpp::file_replace_ext(meshPath, "mtl");
+        rpp::strview matlibFile = rpp::file_nameext(matlib);
         if (SaveMaterials(*this, matlib, matlibFile, opt))
             sb.writeln("mtllib", matlibFile);
 
@@ -572,7 +568,7 @@ namespace Nano
             auto* vertsData = g.Verts.data();
             if (g.Colors.empty())
             {
-                for (const Vector3& v : g.Verts)
+                for (const rpp::Vector3& v : g.Verts)
                     sb.writef("v %.6f %.6f %.6f\n", v.x, v.y, v.z);
             }
             else // non-standard extension for OBJ vertex colors
@@ -588,15 +584,15 @@ namespace Nano
                 const int numVerts = g.NumVerts();
                 for (int i = 0; i < numVerts; ++i)
                 {
-                    const Vector3& v = vertsData[i];
-                    const Vector3& c = colorsData[i];
-                    if (c == Vector3::Zero()) sb.writef("v %.6f %.6f %.6f\n", v.x, v.y, v.z);
+                    const rpp::Vector3& v = vertsData[i];
+                    const rpp::Vector3& c = colorsData[i];
+                    if (c == rpp::Vector3::Zero()) sb.writef("v %.6f %.6f %.6f\n", v.x, v.y, v.z);
                     else sb.writef("v %.6f %.6f %.6f %.6f %.6f %.6f\n", v.x, v.y, v.z, c.x, c.y, c.z);
                 }
             }
 
-            for (const Vector2& v : g.Coords)  sb.writef("vt %.4f %.4f\n", v.x, v.y);
-            for (const Vector3& v : g.Normals) sb.writef("vn %.4f %.4f %.4f\n", v.x, v.y, v.z);
+            for (const rpp::Vector2& v : g.Coords)  sb.writef("vt %.4f %.4f\n", v.x, v.y);
+            for (const rpp::Vector3& v : g.Normals) sb.writef("vn %.4f %.4f %.4f\n", v.x, v.y, v.z);
 
             if (!g.Name.empty()) sb.writeln("g", g.Name);
             if (g.Mat)           sb.writeln("usemtl", g.Mat->Name);

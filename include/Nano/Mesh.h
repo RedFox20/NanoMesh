@@ -26,20 +26,6 @@
 
 namespace Nano
 {
-    using std::string;
-    using std::vector;
-    using std::unordered_map;
-    using std::shared_ptr;
-
-    using rpp::strview;
-    using rpp::Vector2;
-    using rpp::Vector3;
-    using rpp::Vector4;
-    using rpp::Matrix4;
-    using rpp::Color3;
-    using rpp::BoundingBox;
-    using rpp::IdVector3;
-    using rpp::Ray;
     //////////////////////////////////////////////////////////////////////
 
 
@@ -72,23 +58,23 @@ namespace Nano
         bool operator!=(const Triangle& t) const;
     };
 
-    NANOMESH_API string to_string(const Triangle& triangle);
+    NANOMESH_API std::string to_string(const Triangle& triangle);
 
 
     struct NANOMESH_API Material
     {
-        string Name; // name of the material instance
+        std::string Name; // name of the material instance
 
-        string DiffusePath;
-        string AlphaPath;
-        string SpecularPath;
-        string NormalPath;
-        string EmissivePath;
+        std::string DiffusePath;
+        std::string AlphaPath;
+        std::string SpecularPath;
+        std::string NormalPath;
+        std::string EmissivePath;
 
-        Color3 AmbientColor = Color3::White();
-        Color3 DiffuseColor = Color3::White();
-        Color3 SpecularColor = Color3::White();
-        Color3 EmissiveColor = Color3::Black();
+        rpp::Color3 AmbientColor = rpp::Color3::White();
+        rpp::Color3 DiffuseColor = rpp::Color3::White();
+        rpp::Color3 SpecularColor = rpp::Color3::White();
+        rpp::Color3 EmissiveColor = rpp::Color3::Black();
 
         float Specular = 1.0f;
         float Alpha = 1.0f;
@@ -138,25 +124,25 @@ namespace Nano
         explicit operator bool() const { return good(); }
 
         // center of the triangle
-        Vector3 center() const;
+        rpp::Vector3 center() const;
 
         // accesses group to retrieve the Vector3 position associated with VertexDescr
-        Vector3 vertex(const VertexDescr& vd) const;
+        rpp::Vector3 vertex(const VertexDescr& vd) const;
 
         // triangle id in this group
         int id() const;
     };
 
 
-    NANOMESH_API string to_string(const PickedTriangle& triangle);
+    NANOMESH_API std::string to_string(const PickedTriangle& triangle);
 
 
     // Common 3D mesh vertex for games, as generic as it can get
     struct BasicVertex
     {
-        Vector3 pos;
-        Vector2 uv;
-        Vector3 norm;
+        rpp::Vector3 pos;
+        rpp::Vector2 uv;
+        rpp::Vector3 norm;
     };
 
 
@@ -185,16 +171,16 @@ namespace Nano
 
     struct NANOMESH_API BonePose
     {
-        Vector3 Translation;
-        Vector3 Rotation; // @note XYZ Rotation in DEGREES
-        Vector3 Scale;
+        rpp::Vector3 Translation;
+        rpp::Vector3 Rotation; // @note XYZ Rotation in DEGREES
+        rpp::Vector3 Scale;
     };
 
     struct NANOMESH_API MeshBone
     {
         int BoneIndex   = 0; // this index in the Bones array
         int ParentIndex = 0; // parent bone index in the Bones array
-        string Name;
+        std::string Name;
         BonePose Pose {};
     };
 
@@ -202,9 +188,9 @@ namespace Nano
     {
         int BoneIndex   = 0; // this index in the SkinnedBones array
         int ParentIndex = 0; // parent bone index in the SkinnedBones array
-        string Name;
+        std::string Name;
         BonePose Pose {};
-        Matrix4 InverseBindPoseTransform; // TODO
+        rpp::Matrix4 InverseBindPoseTransform; // TODO
     };
 
     struct NANOMESH_API AnimationKeyFrame
@@ -216,14 +202,14 @@ namespace Nano
     struct NANOMESH_API BoneAnimation
     {
         int SkinnedBoneIndex = 0; // index of SkinnedBone
-        vector<AnimationKeyFrame> Frames; // animation keyframes for this bone
+        std::vector<AnimationKeyFrame> Frames; // animation keyframes for this bone
     };
 
     struct NANOMESH_API AnimationClip
     {
-        string Name; // unique name identifier of this animation clip
+        std::string Name; // unique name identifier of this animation clip
         float Duration = 0; // duration of this animation clip
-        vector<BoneAnimation> Animations; // list of bone animations
+        std::vector<BoneAnimation> Animations; // list of bone animations
     };
 
     // Up to 4 bone indices per vertex
@@ -235,29 +221,29 @@ namespace Nano
     // Maps up to 4 bone weights per vertex
     struct NANOMESH_API BlendWeights
     {
-        Vector4 weights;
+        rpp::Vector4 weights;
     };
 
     struct NANOMESH_API MeshGroup
     {
         int GroupId = -1;
-        string Name; // name of the suboject
-        shared_ptr<Material> Mat;
+        std::string Name; // name of the suboject
+        std::shared_ptr<Material> Mat;
 
-        Vector3 Offset   = Vector3::Zero();
-        Vector3 Rotation = Vector3::Zero(); // XYZ Euler DEGREES
-        Vector3 Scale    = Vector3::One();
+        rpp::Vector3 Offset   = rpp::Vector3::Zero();
+        rpp::Vector3 Rotation = rpp::Vector3::Zero(); // XYZ Euler DEGREES
+        rpp::Vector3 Scale    = rpp::Vector3::One();
 
         // we treat mesh data as 'layers', so everything except Verts is optional
-        vector<Vector3> Verts;
-        vector<Vector2> Coords;
-        vector<Vector3> Normals;
-        vector<Color3>  Colors;
-        vector<Vector4> Weights;
-        vector<Nano::BlendIndices> BlendIndices;
-        vector<Nano::BlendWeights> BlendWeights;
+        std::vector<rpp::Vector3> Verts;
+        std::vector<rpp::Vector2> Coords;
+        std::vector<rpp::Vector3> Normals;
+        std::vector<rpp::Color3>  Colors;
+        std::vector<rpp::Vector4> Weights;
+        std::vector<Nano::BlendIndices> BlendIndices;
+        std::vector<Nano::BlendWeights> BlendWeights;
 
-        vector<Triangle> Tris; // face descriptors (tris and/or quads)
+        std::vector<Triangle> Tris; // face descriptors (tris and/or quads)
 
         MapMode CoordsMapping  = MapMode::None;
         MapMode NormalsMapping = MapMode::None;
@@ -267,7 +253,7 @@ namespace Nano
         FaceWinding   Winding  = FaceWinding::CW;
         CoordSys      System   = CoordSys::GL;
 
-        MeshGroup(int groupId, string name)
+        MeshGroup(int groupId, std::string name)
             : GroupId(groupId), Name(std::move(name)) {}
 
         bool IsEmpty()   const { return Tris.empty(); }
@@ -278,21 +264,21 @@ namespace Nano
         int NumColors()  const { return (int)Colors.size(); }
         int NumBlendIndices() const { return (int)BlendIndices.size(); }
         int NumBlendWeights() const { return (int)BlendWeights.size(); }
-        Vector3* VertexData() { return Verts.data();   }
-        Vector2* CoordData()  { return Coords.data();  }
-        Vector3* NormalData() { return Normals.data(); }
-        Color3*  ColorData()  { return Colors.data();  }
+        rpp::Vector3* VertexData() { return Verts.data();   }
+        rpp::Vector2* CoordData()  { return Coords.data();  }
+        rpp::Vector3* NormalData() { return Normals.data(); }
+        rpp::Color3*  ColorData()  { return Colors.data();  }
         Nano::BlendIndices*  BlendIndexData()  { return BlendIndices.data(); }
         Nano::BlendWeights*  BlendWeightData() { return BlendWeights.data(); }
-        const Vector3* VertexData() const { return Verts.data(); }
-        const Vector2* CoordData()  const { return Coords.data(); }
-        const Vector3* NormalData() const { return Normals.data(); }
-        const Color3*  ColorData()  const { return Colors.data(); }
+        const rpp::Vector3* VertexData() const { return Verts.data(); }
+        const rpp::Vector2* CoordData()  const { return Coords.data(); }
+        const rpp::Vector3* NormalData() const { return Normals.data(); }
+        const rpp::Color3*  ColorData()  const { return Colors.data(); }
         const Nano::BlendIndices*  BlendIndexData()  const { return BlendIndices.data(); }
         const Nano::BlendWeights*  BlendWeightData() const { return BlendWeights.data(); }
 
-        const Vector3& Vertex(int vertexId)          const { return Verts.data()[vertexId]; }
-        const Vector3& Vertex(const VertexDescr& vd) const { return Verts.data()[vd.v]; }
+        const rpp::Vector3& Vertex(int vertexId)          const { return Verts.data()[vertexId]; }
+        const rpp::Vector3& Vertex(const VertexDescr& vd) const { return Verts.data()[vd.v]; }
 
         const Triangle* begin() const { return &Tris.front(); }
         const Triangle* end()   const { return &Tris.back() + 1; }
@@ -303,7 +289,7 @@ namespace Nano
         void Clear();
 
         // creates and assigns a new material to this mesh group
-        Material& CreateMaterial(string name);
+        Material& CreateMaterial(std::string name);
 
         // will set the face winding to CW or CCW
         void SetFaceWinding(FaceWinding winding) noexcept;
@@ -330,12 +316,12 @@ namespace Nano
 
         // Retrieves surface normals from selection
         // @note The mesh must have PerVertex normals!
-        Vector3 GetNormalForSelection(const vector<WeightId>& selection) const noexcept;
+        rpp::Vector3 GetNormalForSelection(const std::vector<WeightId>& selection) const noexcept;
 
         // normal = -normal;
         void InvertNormals() noexcept;
 
-        void SetVertexColor(int vertexId, const Color3& vertexColor) noexcept;
+        void SetVertexColor(int vertexId, const rpp::Color3& vertexColor) noexcept;
 
         // Flattens all mesh data, so MapMode is MapPerFaceVertex
         // This will make the mesh data compatible with any 3D graphics engine out there
@@ -348,12 +334,12 @@ namespace Nano
 
         // Adds additional meshgroups from another Mesh
         // Optionally appends an extra offset to position vertices
-        void AddMeshData(const MeshGroup& group, Vector3 offset = Vector3::Zero()) noexcept;
+        void AddMeshData(const MeshGroup& group, rpp::Vector3 offset =rpp:: Vector3::Zero()) noexcept;
 
         // Gets a basic vertex mesh representation which can be used safely in most games,
         // because the vertices are safely flattened with optimal vertex sharing
         // @note If you called FlattenMeshData() before this, then optimal vertex sharing is not possible
-        void CreateGameVertexData(vector<BasicVertex>& vertices, vector<int>& indices) const noexcept;
+        void CreateGameVertexData(std::vector<BasicVertex>& vertices, std::vector<int>& indices) const noexcept;
 
         // splits vertices that share an UV seam - this is required for non-contiguos UV support
         void SplitSeamVertices() noexcept;
@@ -365,22 +351,22 @@ namespace Nano
         // SplitSeamVertices() && PerVertexFlatten()
         void OptimizedFlatten() noexcept;
 
-        void CreateIndexArray(vector<int>& indices) const noexcept;
-        void CreateIndexArray(vector<short>& indices) const noexcept;
-        void CreateIndexArray(vector<unsigned int>& indices) const noexcept;
-        void CreateIndexArray(vector<unsigned short>& indices) const noexcept;
+        void CreateIndexArray(std::vector<int>& indices) const noexcept;
+        void CreateIndexArray(std::vector<short>& indices) const noexcept;
+        void CreateIndexArray(std::vector<unsigned int>& indices) const noexcept;
+        void CreateIndexArray(std::vector<unsigned short>& indices) const noexcept;
 
-        void CreateIndexArray(vector<int>& indices, FaceWinding winding) const noexcept;
-        void CreateIndexArray(vector<short>& indices, FaceWinding winding) const noexcept;
+        void CreateIndexArray(std::vector<int>& indices, FaceWinding winding) const noexcept;
+        void CreateIndexArray(std::vector<short>& indices, FaceWinding winding) const noexcept;
 
         // Pick the closest face that intersects with the ray
-        PickedTriangle PickTriangle(const Ray& ray) const noexcept;
+        PickedTriangle PickTriangle(const rpp::Ray& ray) const noexcept;
 
-        BoundingBox CalculateBBox() const noexcept {
-            return BoundingBox::create(Verts);
+        rpp::BoundingBox CalculateBBox() const noexcept {
+            return rpp::BoundingBox::create(Verts);
         }
-        BoundingBox CalculateBBox(const vector<IdVector3>& deltas) const noexcept {
-            return BoundingBox::create(Verts, deltas);
+        rpp::BoundingBox CalculateBBox(const std::vector<rpp::IdVector3>& deltas) const noexcept {
+            return rpp::BoundingBox::create(Verts, deltas);
         }
 
         // prints group info to stdout
@@ -513,17 +499,17 @@ namespace Nano
     {
     public:
         // These are intentionally public to allow custom mesh manipulation
-        string Name;
-        vector<MeshGroup> Groups;
-        vector<MeshBone> Bones; // all bones
-        vector<SkinnedBone> SkinnedBones; // only animated/skinned bones
-        vector<AnimationClip> AnimationClips; // all animation clips
+        std::string Name;
+        std::vector<MeshGroup> Groups;
+        std::vector<MeshBone> Bones; // all bones
+        std::vector<SkinnedBone> SkinnedBones; // only animated/skinned bones
+        std::vector<AnimationClip> AnimationClips; // all animation clips
 
         // Default empty mesh
         Mesh();
         
         // Automatically constructs a new mesh, check good() or cast to bool to check if successful
-        explicit Mesh(strview meshPath, Options options = {});
+        explicit Mesh(rpp::strview meshPath, Options options = {});
 
         ~Mesh();
 
@@ -540,12 +526,12 @@ namespace Nano
         bool operator!()         const { return !good(); }
 
 
-        MeshGroup* FindGroup(strview name);
-        const MeshGroup* FindGroup(strview name) const;
-        MeshGroup& CreateGroup(string name);
-        MeshGroup& FindOrCreateGroup(strview name);
+        MeshGroup* FindGroup(rpp::strview name);
+        const MeshGroup* FindGroup(rpp::strview name) const;
+        MeshGroup& CreateGroup(std::string name);
+        MeshGroup& FindOrCreateGroup(rpp::strview name);
 
-        shared_ptr<Material> FindMaterial(strview name) const;
+        std::shared_ptr<Material> FindMaterial(rpp::strview name) const;
         bool HasAnyMaterials() const;
 
         int NumGroups() const { return (int)Groups.size();  }
@@ -582,28 +568,28 @@ namespace Nano
          * @note This will only throw if Options::NoExceptions is true
          * @return If !NoExceptions, returns TRUE on SUCCESS
          */
-        bool Load(strview meshPath, Options opt = {});
+        bool Load(rpp::strview meshPath, Options opt = {});
         
     private:
         void ApplyLoadOptions(Options opt);
 
     public:
-        bool SaveAs(strview meshPath, Options opt = {}) const;
+        bool SaveAs(rpp::strview meshPath, Options opt = {}) const;
 
         // Is FBX supported on this platform?
         static bool IsFBXSupported() noexcept;
-        bool LoadFBX(strview meshPath, Options opt = {});
-        bool LoadOBJ(strview meshPath, Options opt = {});
+        bool LoadFBX(rpp::strview meshPath, Options opt = {});
+        bool LoadOBJ(rpp::strview meshPath, Options opt = {});
         
         /**
          * A simple custom mesh text format, which is similar to OBJ
          * Look at NanoMesh/bin/.txt for examples
          * @note This is designed for testing purposes
          */
-        bool LoadTXT(strview meshPath, Options opt = {});
+        bool LoadTXT(rpp::strview meshPath, Options opt = {});
 
-        bool SaveAsFBX(strview meshPath, Options opt = {}) const;
-        bool SaveAsOBJ(strview meshPath, Options opt = {}) const;
+        bool SaveAsFBX(rpp::strview meshPath, Options opt = {}) const;
+        bool SaveAsOBJ(rpp::strview meshPath, Options opt = {}) const;
         // bool SaveAsTxt(strview meshPath, Options opt = {}) const;
 
         // Recalculates all normals by find shared and non-shared vertices on the same pos
@@ -615,11 +601,11 @@ namespace Nano
         // normal = -normal;
         void InvertNormals() noexcept;
 
-        BoundingBox CalculateBBox() const noexcept;
+        rpp::BoundingBox CalculateBBox() const noexcept;
 
         // Adds additional MeshGroups from another Mesh
         // Optionally appends an extra offset to position vertices
-        void AddMeshData(const Mesh& mesh, Vector3 offset = Vector3::Zero()) noexcept;
+        void AddMeshData(const Mesh& mesh, rpp::Vector3 offset = rpp::Vector3::Zero()) noexcept;
 
         void SplitSeamVertices() noexcept;
 
@@ -648,7 +634,7 @@ namespace Nano
         void MergeGroups() noexcept;
 
         // Pick the closest face that intersects with the ray
-        PickedTriangle PickTriangle(const Ray& ray) const noexcept;
+        PickedTriangle PickTriangle(const rpp::Ray& ray) const noexcept;
 
         // Adds a new empty animation clip and returns its index id
         int AddAnimClip(std::string name, float duration);
