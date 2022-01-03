@@ -624,19 +624,26 @@ namespace Nano
 
     using Materials = std::unordered_map<Material*, fbx::FbxSurfacePhong*>;
 
-    static fbx::FbxFileTexture* NewTexture(fbx::FbxScene* scene, const std::string& texture, 
+    static fbx::FbxFileTexture* NewTexture(fbx::FbxScene* scene,
+                                           const std::string& absFolderPath,
+                                           const std::string& relativePath,
                                            const char* name,
                                            fbx::FbxTexture::ETextureUse usage = fbx::FbxTexture::eStandard)
     {
-        if (texture.empty())
+        if (relativePath.empty())
             return nullptr;
         fbx::FbxFileTexture* tex = fbx::FbxFileTexture::Create(scene, name);
-        if (!tex->SetFileName(texture.c_str())) {
-            LogWarning("FbxFileTexture::SetFileName failed: %s", texture);
+
+        // https://forums.autodesk.com/t5/fbx-forum/fbx-and-relative-paths/td-p/3968055
+        // Always set the absolute path to the texture because
+        // FBXSDK will always recalculate the relative paths, which is really annoying
+        std::string absPath = rpp::path_combine(absFolderPath, relativePath);
+        if (!tex->SetFileName(absPath.c_str())) {
+            LogWarning("FbxFileTexture::SetFileName failed: %s", absPath);
         }
-        if (!tex->SetRelativeFileName(texture.c_str())) {
-            LogWarning("FbxFileTexture::SetFileName failed: %s", texture);
-        }
+        //if (!tex->SetRelativeFileName(relativePath.c_str())) {
+        //    LogWarning("FbxFileTexture::SetRelativeFileName failed: %s", relativePath);
+        //}
         tex->SetTextureUse(usage);
         tex->SetMappingType(fbx::FbxTexture::eUV);
         tex->SetMaterialUse(fbx::FbxFileTexture::eModelMaterial);
@@ -647,9 +654,13 @@ namespace Nano
         return tex;
     }
 
-    static Materials CreateMaterials(fbx::FbxScene* scene, const std::vector<MeshGroup>& groups)
+    static Materials CreateMaterials(fbx::FbxScene* scene,
+                                     const std::vector<MeshGroup>& groups,
+                                     const std::string& meshSavePath)
     {
+        std::string folder = rpp::folder_path(rpp::full_path(meshSavePath));
         Nano::Materials materials { {nullptr, nullptr} };
+
         for (const Nano::MeshGroup& g : groups)
         {
             if (g.Mat)
@@ -665,15 +676,19 @@ namespace Nano
                 if (!m.EmissiveColor.almostEqual(rpp::Color3::Black()))
                     mat->Emissive.Set(ToFbxColor3(m.EmissiveColor));
 
-                if (auto* diffuse = NewTexture(scene, m.DiffusePath, "Diffuse Texture"))
+                if (auto* diffuse = NewTexture(scene, folder, m.DiffusePath, "Diffuse Texture")) {
                     mat->Diffuse.ConnectSrcObject(diffuse);
-                if (auto* alpha = NewTexture(scene, m.AlphaPath, "Alpha Texture"))
+                }
+                if (auto* alpha = NewTexture(scene, folder, m.AlphaPath, "Alpha Texture")) {
                     mat->TransparentColor.ConnectSrcObject(alpha);
-                if (auto* specular = NewTexture(scene, m.SpecularPath, "Specular Texture"))
+                }
+                if (auto* specular = NewTexture(scene, folder, m.SpecularPath, "Specular Texture")) {
                     mat->Specular.ConnectSrcObject(specular);
-                if (auto* normal = NewTexture(scene, m.NormalPath, "Normal Texture", fbx::FbxTexture::eBumpNormalMap))
+                }
+                if (auto* normal = NewTexture(scene, folder, m.NormalPath, "Normal Texture", fbx::FbxTexture::eBumpNormalMap)) {
                     mat->NormalMap.ConnectSrcObject(normal);
-                if (auto* emissive = NewTexture(scene, m.EmissivePath, "Emissive Texture")) {
+                }
+                if (auto* emissive = NewTexture(scene, folder, m.EmissivePath, "Emissive Texture")) {
                     mat->Emissive.ConnectSrcObject(emissive);
                     mat->EmissiveFactor.ConnectSrcObject(emissive);
                 }
@@ -744,7 +759,7 @@ namespace Nano
         scene->GetGlobalSettings().SetAxisSystem(axisSys);
         scene->GetGlobalSettings().SetSystemUnit(fbx::FbxSystemUnit(100.0/*meters*/));
 
-        Nano::Materials materials = CreateMaterials(scene.get(), Groups);
+        Nano::Materials materials = CreateMaterials(scene.get(), Groups, meshPath);
 
         if (fbx::FbxNode* root = scene->GetRootNode())
         {
