@@ -427,6 +427,46 @@ namespace Nano
         
     }
 
+    static std::shared_ptr<Nano::Material> LoadMaterial(fbx::FbxSurfaceMaterial* fbxMat)
+    {
+        auto mat = std::make_shared<Nano::Material>();
+        mat->Name = fbxMat->GetName();
+        //if (auto* lam = dynamic_cast<fbx::FbxSurfaceLambert*>(fbxMat))
+        //{
+        //    fbx::FbxTexture* texture = FbxCast<fbx::FbxTexture>(lam->Diffuse.GetSrcObject<fbx::FbxTexture>(i));
+
+
+        //    mat->DiffuseColor = lam->Diffuse.GetSr
+        //}
+        //fbx::FbxSurfacePhong* mat = fbx::FbxSurfacePhong::Create(scene, m.Name.data());
+        //materials[&m] = mat;
+        //mat->Ambient.Set(ToFbxColor3(m.AmbientColor));
+        //mat->Diffuse.Set(ToFbxColor3(m.DiffuseColor));
+        //mat->Specular.Set(ToFbxColor3(m.SpecularColor));
+        //mat->SpecularFactor.Set((double)m.Specular);
+        //mat->TransparencyFactor.Set((double)m.Alpha);
+        //if (!m.EmissiveColor.almostEqual(rpp::Color3::Black()))
+        //    mat->Emissive.Set(ToFbxColor3(m.EmissiveColor));
+
+        //if (auto* diffuse = NewTexture(scene, folder, m.DiffusePath, "Diffuse Texture")) {
+        //    mat->Diffuse.ConnectSrcObject(diffuse);
+        //}
+        //if (auto* alpha = NewTexture(scene, folder, m.AlphaPath, "Alpha Texture")) {
+        //    mat->TransparentColor.ConnectSrcObject(alpha);
+        //}
+        //if (auto* specular = NewTexture(scene, folder, m.SpecularPath, "Specular Texture")) {
+        //    mat->Specular.ConnectSrcObject(specular);
+        //}
+        //if (auto* normal = NewTexture(scene, folder, m.NormalPath, "Normal Texture", fbx::FbxTexture::eBumpNormalMap)) {
+        //    mat->NormalMap.ConnectSrcObject(normal);
+        //}
+        //if (auto* emissive = NewTexture(scene, folder, m.EmissivePath, "Emissive Texture")) {
+        //    mat->Emissive.ConnectSrcObject(emissive);
+        //    mat->EmissiveFactor.ConnectSrcObject(emissive);
+        //}
+        return mat;
+    }
+
     static void SetTransformGL(MeshGroup& group, fbx::FbxNode* node)
     {
         fbx::FbxDouble3 offset = node->LclTranslation.Get();
@@ -457,6 +497,15 @@ namespace Nano
         }
         importer.reset();
 
+        fbx::FbxArray<fbx::FbxSurfaceMaterial*> fbxMaterials;
+        scene->FillMaterialArray(fbxMaterials);
+
+        std::vector<std::shared_ptr<Nano::Material>> materials(scene->GetMaterialCount());
+        for (size_t i = 0; i < materials.size(); ++i)
+        {
+            materials[i] = LoadMaterial(scene->GetMaterial(i));
+        }
+
         if (fbx::FbxNode* root = scene->GetRootNode())
         {
             Name = file_name(meshPath);
@@ -474,7 +523,7 @@ namespace Nano
             {
                 fbx::FbxNode* child = root->GetChild(childIndex);
                 fbx::FbxNodeAttribute* attribute = child->GetNodeAttribute();
- 
+
                 if (fbx::FbxMesh* mesh = child->GetMesh())
                 {
                     MeshGroup& group = CreateGroup(child->GetName());
